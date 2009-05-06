@@ -405,6 +405,9 @@ namespace ExportSWC
         void Compile(object sender, EventArgs e)
         {
             _button.Enabled = false;
+
+            SaveOpenDocuments();
+
             RunCompc(CompcConfigPath_Flex);
             if (SwcProject.MakeCS3)
             {
@@ -414,6 +417,18 @@ namespace ExportSWC
                     BuildMXP();
             }
             _button.Enabled = true;
+        }
+
+        private void SaveOpenDocuments()
+        {
+            if (PluginBase.MainForm.HasModifiedDocuments == false)
+                return;
+
+            foreach (ITabbedDocument document in PluginBase.MainForm.Documents)
+            {
+                if (document.IsModified)
+                    document.Save();
+            }
         }
 
         private void BuildMXP()
@@ -986,7 +1001,7 @@ namespace ExportSWC
         /// <param name="sender">the sender</param>
         /// <param name="e">the event args</param>
         public void Build(object sender, System.EventArgs e)
-        {
+        {            
             PreBuild(sender, e);
             Compile(sender, e);
         }
