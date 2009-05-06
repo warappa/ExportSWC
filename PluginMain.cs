@@ -404,22 +404,63 @@ namespace ExportSWC
 
         void Compile(object sender, EventArgs e)
         {
+            bool buildSuccess = true;
+
             _button.Enabled = false;
 
-            SaveOpenDocuments();
+            SaveModifiedDocuments();
 
-            RunCompc(CompcConfigPath_Flex);
+            RunPreBuildEvent();
+
+            buildSuccess &= RunCompc(CompcConfigPath_Flex);
             if (SwcProject.MakeCS3)
             {
-                RunCompc(CompcConfigPath_Flash);
+                buildSuccess &= RunCompc(CompcConfigPath_Flash);
                 PatchFlashSWC();
                 if (SwcProject.LaunchAEM)
-                    BuildMXP();
+                    buildSuccess &= BuildMXP();
             }
+            if(buildSuccess || Project.AlwaysRunPostBuild)
+                RunPostBuildEvent();
+
             _button.Enabled = true;
         }
 
-        private void SaveOpenDocuments()
+        private void RunPreBuildEvent()
+        {
+            if (Project.PreBuildEvent.Trim().Length == 0)
+                return;
+
+            Process process = new Process();
+            ProcessStartInfo processStI = new ProcessStartInfo();
+            processStI.FileName = "cmd.exe";
+            processStI.Arguments = "/C " + Project.PreBuildEvent;
+            processStI.CreateNoWindow = true;
+            process.StartInfo = processStI;            
+            process.Start();
+
+            TraceManager.AddAsync("Running Pre-Build Command:\ncmd: " + Project.PreBuildEvent);
+
+            process.WaitForExit(15000);
+        }
+
+        private void RunPostBuildEvent()
+        {
+            if (Project.PostBuildEvent.Trim().Length == 0)
+                return;
+
+            Process process = new Process();
+            ProcessStartInfo processStI = new ProcessStartInfo();
+            processStI.FileName = "cmd.exe";
+            processStI.Arguments = "/C " + Project.PostBuildEvent;
+            processStI.CreateNoWindow = true;
+            process.StartInfo = processStI;
+            process.Start();
+
+            TraceManager.AddAsync("Running Post-Build Command:\ncmd: " + Project.PostBuildEvent);
+        }
+
+        private void SaveModifiedDocuments()
         {
             if (PluginBase.MainForm.HasModifiedDocuments == false)
                 return;
@@ -431,13 +472,17 @@ namespace ExportSWC
             }
         }
 
-        private void BuildMXP()
+        private bool BuildMXP()
         {
             // throw new NotImplementedException();
             ProcessStartInfo pi = new ProcessStartInfo();
             pi.UseShellExecute = true;
             pi.FileName = MXIPath;
-            Process.Start(pi);
+            Process process = Process.Start(pi);
+
+            bool success = process.WaitForExit(15000);
+
+            return success && (process.ExitCode == 0);
         }
 
         private void PatchFlashSWC()
@@ -664,7 +709,7 @@ namespace ExportSWC
             }
         }
 
-        private void RunCompc(string confpath)
+        private bool RunCompc(string confpath)
         {
             try
             {
@@ -707,7 +752,7 @@ namespace ExportSWC
                     Application.DoEvents();
                 }
 
-                AS3Project project = PluginBase.CurrentProject as AS3Project;
+                AS3Project project = Project;
                 bool checkForIllegalCrossThreadCalls = Control.CheckForIllegalCrossThreadCalls;
                 Control.CheckForIllegalCrossThreadCalls = false;
                 if (!_anyErrors)
@@ -722,12 +767,15 @@ namespace ExportSWC
                 }
                 Control.CheckForIllegalCrossThreadCalls = checkForIllegalCrossThreadCalls;
 
+                return (_anyErrors == false) & (process.HostedProcess.ExitCode == 0);
             }
             catch (Exception ex)
             {
                 // somethings happened, report it
                 TraceManager.Add("*** Unable to build SWC: " + ex.Message);
                 TraceManager.Add(ex.StackTrace);
+                
+                return false;
             }
         }
 
