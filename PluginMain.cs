@@ -431,15 +431,17 @@ namespace ExportSWC
             if (Project.PreBuildEvent.Trim().Length == 0)
                 return;
 
+			string command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(Project.PreBuildEvent, true);
+
             Process process = new Process();
             ProcessStartInfo processStI = new ProcessStartInfo();
             processStI.FileName = "cmd.exe";
-            processStI.Arguments = "/C " + Project.PreBuildEvent;
+            processStI.Arguments = "/C " + command;
             processStI.CreateNoWindow = true;
             process.StartInfo = processStI;            
             process.Start();
 
-            TraceManager.AddAsync("Running Pre-Build Command:\ncmd: " + Project.PreBuildEvent);
+			TraceManager.AddAsync("Running Pre-Build Command:\ncmd: " + command);
 
             process.WaitForExit(15000);
         }
@@ -449,15 +451,17 @@ namespace ExportSWC
             if (Project.PostBuildEvent.Trim().Length == 0)
                 return;
 
+			string command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(Project.PostBuildEvent, true);
+
             Process process = new Process();
             ProcessStartInfo processStI = new ProcessStartInfo();
             processStI.FileName = "cmd.exe";
-            processStI.Arguments = "/C " + Project.PostBuildEvent;
+			processStI.Arguments = "/C " + command;
             processStI.CreateNoWindow = true;
             process.StartInfo = processStI;
             process.Start();
 
-            TraceManager.AddAsync("Running Post-Build Command:\ncmd: " + Project.PostBuildEvent);
+            TraceManager.AddAsync("Running Post-Build Command:\ncmd: " + command);
         }
 
         private void SaveModifiedDocuments()
