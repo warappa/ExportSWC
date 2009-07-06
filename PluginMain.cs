@@ -1081,7 +1081,8 @@ namespace ExportSWC
             // add every AS class to the manifest
             foreach (FileInfo file in directory.GetFiles())
             {
-                if (file.Extension == ".as")
+                if (file.Extension == ".as" ||
+					file.Extension == ".mxml")
                 {
                     string className = Path.GetFileNameWithoutExtension(file.FullName);
                     if (!classExclusions.Contains(rspath + className + ".as"))
