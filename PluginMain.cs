@@ -209,7 +209,56 @@ namespace ExportSWC
 
         #endregion
 
-        private void InjectContextMenuItems(ProjectTreeView tree, ArrayList te)
+		protected string GetRelativePath(string rootPath, string targetPath)
+		{
+			int i, k, j, count;
+			rootPath=GetProjectItemFullPath(rootPath).ToLower();
+			targetPath=GetProjectItemFullPath(targetPath).ToLower();
+
+			string[] strsRoot = rootPath.Split(new char[] { '\\' });
+			string[] strsTarget = targetPath.Split(new char[] { '\\' });
+			
+			for (i = strsRoot.Length; i > 0; i--)
+			{
+				string tmpPath="";
+				for (j = 0; j < i; j++)
+					tmpPath += strsRoot[j]+"\\";
+
+				tmpPath = tmpPath.Substring(0, tmpPath.Length - 1);
+				
+				if (targetPath.Contains(tmpPath))
+				{					
+					tmpPath += "\\";
+					count = 0;
+					
+					for (k = i, count = 0; k < strsRoot.Length; k++, count++)
+					{						
+						if (tmpPath == rootPath)
+							break;
+
+						tmpPath += strsRoot[k];
+					}
+
+					tmpPath = "";
+					for (k = 0; k < count; k++)
+					{
+						tmpPath += "..\\";
+					}
+
+					for (k = i; k < strsTarget.Length; k++)
+						tmpPath += strsTarget[k] + '\\';
+					tmpPath = tmpPath.Substring(0, tmpPath.Length - 1);
+
+					return tmpPath;
+				}
+			}
+
+			return null;
+
+
+		}
+
+		private void InjectContextMenuItems(ProjectTreeView tree, ArrayList te)
         {
             // we're only interested in single items
             if (tree.SelectedNodes.Count == 1)
@@ -219,11 +268,15 @@ namespace ExportSWC
                 if (node.BackingPath.Length <= ProjectPath.FullName.Length)
                     return;
 
-                string nodeRelative = node.BackingPath.Substring(ProjectPath.FullName.Length);
-                // as3 file
-                if (Path.GetExtension(node.BackingPath).ToLower() == ".as")
-                {
+				string nodeRelative = GetRelativePath(ProjectPath.FullName, node.BackingPath);
+				if (nodeRelative == null)					
+					nodeRelative = node.BackingPath;
+				nodeRelative = nodeRelative.ToLower();
 
+                // as3 file
+                if (Path.GetExtension(node.BackingPath).ToLower() == ".as" ||
+					Path.GetExtension(node.BackingPath).ToLower() == ".mxml")
+                {					
                     /* cs3 ignore item */
                     ToolStripMenuItem ignoreCs3 = new ToolStripMenuItem("Exclude from CS3 SWC");
                     ignoreCs3.CheckOnClick = true;
@@ -242,22 +295,35 @@ namespace ExportSWC
                     tree.ContextMenuStrip.Items.Add(ignoreCs3);
                     tree.ContextMenuStrip.Items.Add(ignoreFlex);
                 }
+
+				// as3 project file
+				if (Path.GetExtension(node.BackingPath).ToLower() == ".as3proj")
+				{
+					
+				}
             }
             //tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
         }
-
+		
         void ignoreFlex_CheckedChanged(object sender, EventArgs e)
         {
             ToolStripMenuItem exBtn = (ToolStripMenuItem)sender;
             GenericNode node = (GenericNode)exBtn.Tag;
-            SwcProject.Flex_IgnoreClasses.Remove(node.BackingPath.Substring(ProjectPath.FullName.Length));
-            if (exBtn.Checked)
-            {
-                SwcProject.Flex_IgnoreClasses.Add(node.BackingPath.Substring(ProjectPath.FullName.Length));
-                node.ForeColorRequest = Color.DarkGray;
-            }
-            else if (!SwcProject.CS3_IgnoreClasses.Contains(node.BackingPath.Substring(ProjectPath.FullName.Length)))
-                node.ForeColorRequest = Color.Black;
+
+			string nodePath = GetRelativePath(ProjectPath.FullName, node.BackingPath);
+
+			SwcProject.Flex_IgnoreClasses.Remove(nodePath);
+			
+			if (exBtn.Checked)
+			{
+				SwcProject.Flex_IgnoreClasses.Add(nodePath);
+				node.ForeColorRequest = Color.DarkGray;
+			}
+			else
+			{
+				if (!IsFileIgnored(nodePath, SwcProject.CS3_IgnoreClasses))
+					node.ForeColorRequest = Color.Black;				
+			}
             SwcProject.Save(SWCProjectPath);
         }
 
@@ -265,15 +331,21 @@ namespace ExportSWC
         {
             ToolStripMenuItem exBtn = (ToolStripMenuItem)sender;
             GenericNode node = (GenericNode)exBtn.Tag;
-            SwcProject.CS3_IgnoreClasses.Remove(node.BackingPath.Substring(ProjectPath.FullName.Length));
-            if (exBtn.Checked)
-            {
-                SwcProject.CS3_IgnoreClasses.Add(node.BackingPath.Substring(ProjectPath.FullName.Length));
-                node.ForeColorRequest = Color.DarkGray;
-            }
-            else if (!SwcProject.Flex_IgnoreClasses.Contains(node.BackingPath.Substring(ProjectPath.FullName.Length)))
-                node.ForeColorRequest = Color.Black;
-            SwcProject.Save(SWCProjectPath);
+			string nodePath = GetRelativePath(ProjectPath.FullName, node.BackingPath);
+
+			SwcProject.CS3_IgnoreClasses.Remove(nodePath);
+			
+			if (exBtn.Checked)
+			{
+				SwcProject.CS3_IgnoreClasses.Add(nodePath);
+				node.ForeColorRequest = Color.DarkGray;
+			}
+			else
+			{
+				if (!IsFileIgnored(nodePath, SwcProject.Flex_IgnoreClasses))
+					node.ForeColorRequest = Color.Black;
+			}
+			SwcProject.Save(SWCProjectPath);
         }
 
         #region Custom Methods
@@ -721,8 +793,7 @@ namespace ExportSWC
                 FileInfo compc = new FileInfo(FlexSdkBase + "\\bin\\compc.exe");
                 if ((!ProjectPath.Exists) | (!compc.Exists))
                     throw new FileNotFoundException("Project or compc.exe not found", ProjectPath.FullName + "|" + compc.FullName);
-
-
+				
                 // generate arguments based on config, additional configs, and additional user arguments
                 string cmdArgs = "-load-config+=\"" + confpath + "\"";
                 if (Project.CompilerOptions.LoadConfig != string.Empty)
@@ -733,7 +804,6 @@ namespace ExportSWC
                 if (Project.CompilerOptions.Additional.Length > 0)
                     foreach (string op in Project.CompilerOptions.Additional)
                         cmdArgs += " " + op;
-
 
                 _anyErrors = false;
 
@@ -945,30 +1015,47 @@ namespace ExportSWC
 
             // source-path & include-classes
             XmlElement sourcePath = CreateElement("source-path", compiler, null);
-            foreach (string classPath in Project.Classpaths)
-                CreateElement("path-element", sourcePath, ProjectPath.FullName + "\\" + classPath);
+			foreach (string classPath in Project.Classpaths)
+			{
+				string absClassPath = GetProjectItemFullPath(classPath).ToLower();
+				CreateElement("path-element", sourcePath, absClassPath);
+			}
 
             // general options...
-            // libarary-path
+            // libarary-path			
             if (Project.CompilerOptions.LibraryPaths.Length > 0)
             {
                 XmlElement includeLibraries = CreateElement("library-path", compiler, null);
-                foreach (string libPath in Project.CompilerOptions.LibraryPaths)
-                    CreateElement("path-element", includeLibraries, ProjectPath.FullName + "\\" + libPath);
+				foreach (string libPath in Project.CompilerOptions.LibraryPaths)
+				{
+					string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+					CreateElement("path-element", includeLibraries, absLibPath);
+				}
             }
 
             // include-libraries
             if (Project.CompilerOptions.IncludeLibraries.Length > 0)
             {
                 XmlElement includeLibraries = CreateElement("include-libraries", compiler, null);
-                foreach (string libPath in Project.CompilerOptions.IncludeLibraries)
-                    CreateElement("library", includeLibraries, ProjectPath.FullName + "\\" + libPath);
+				foreach (string libPath in Project.CompilerOptions.IncludeLibraries)
+				{
+					string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+					CreateElement("library", includeLibraries, absLibPath);
+				}
             }
 
             // include-classes
+			List<string> origClassExclusions=classExclusions;
+			classExclusions=new List<string>();
+			for (int i = 0; i < origClassExclusions.Count; i++)
+				classExclusions.Add(GetProjectItemFullPath(origClassExclusions[i]).ToLower());
+
             XmlElement includeClasses = CreateElement("include-classes", config.DocumentElement, null);
-            foreach (string classPath in Project.Classpaths)
-                IncludeClassesIn(includeClasses, ProjectPath + "\\" + classPath, string.Empty, classExclusions);
+			foreach (string classPath in Project.Classpaths)
+			{
+				string absClassPath = GetProjectItemFullPath(classPath).ToLower();
+				IncludeClassesIn(includeClasses, absClassPath, string.Empty, classExclusions);
+			}
 
             // add namespace, save config to obj folder
             config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
@@ -976,6 +1063,13 @@ namespace ExportSWC
             TraceManager.AddAsync("Configuration writen to: " + confout, 2);
 
         }
+		private string GetProjectItemFullPath(string path)
+		{
+			if(Path.IsPathRooted(path))
+				return path;
+
+			return Path.GetFullPath(ProjectPath.FullName + "\\" + path);
+		}
 
         private string LibMakerDir
         {
@@ -1073,20 +1167,29 @@ namespace ExportSWC
             return element;
         }
 
+		protected bool IsFileIgnored(string file, List<string> classExclusions)
+		{
+			string filePath = GetProjectItemFullPath(file);
+
+			if (classExclusions.Contains(filePath.ToLower()))
+				return true;
+			return false;
+		}
+
         private void IncludeClassesIn(XmlElement includeClasses, string sourcePath, string parentPath, List<string> classExclusions)
         {
             // take the current folder
-            DirectoryInfo directory = new DirectoryInfo(sourcePath);
-            string rspath = (sourcePath.TrimEnd('\\') + "\\").Replace(ProjectPath.FullName, "");
+            DirectoryInfo directory = new DirectoryInfo(sourcePath);            
             // add every AS class to the manifest
             foreach (FileInfo file in directory.GetFiles())
             {
                 if (file.Extension == ".as" ||
 					file.Extension == ".mxml")
                 {
-                    string className = Path.GetFileNameWithoutExtension(file.FullName);
-                    if (!classExclusions.Contains(rspath + className + ".as"))
-                        CreateElement("class", includeClasses, parentPath + className);
+					if (!IsFileIgnored(file.FullName, classExclusions))
+					{
+						CreateElement("class", includeClasses, parentPath + Path.GetFileNameWithoutExtension(file.FullName));
+					}                    
                 }
             }
 
