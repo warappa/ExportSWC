@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyCulture("")]
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
-[assembly: AssemblyVersion("1.1.0.*")]
+[assembly: AssemblyVersion("1.2.*")]
 
 /* [Change Log]
  * 1.1.0.* - built against FD3b8, source released to SourceForge.net
