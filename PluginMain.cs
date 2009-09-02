@@ -958,6 +958,9 @@ namespace ExportSWC
             // use-network
             CreateElement("use-network", config.DocumentElement, Project.CompilerOptions.UseNetwork.ToString().ToLower());
 
+			// target
+			CreateElement("target-player", config.DocumentElement, ((AS3Project)Project).MovieOptions.Version.ToString());
+
             // warnings
             CreateElement("warnings", config.DocumentElement, Project.CompilerOptions.Warnings.ToString().ToLower());
 
@@ -1056,6 +1059,21 @@ namespace ExportSWC
 				string absClassPath = GetProjectItemFullPath(classPath).ToLower();
 				IncludeClassesIn(includeClasses, absClassPath, string.Empty, classExclusions);
 			}
+
+			// external-library-path 
+			if (Project.CompilerOptions.ExternalLibraryPaths != null && Project.CompilerOptions.ExternalLibraryPaths.Length > 0)
+			{
+				XmlElement externalLibs = CreateElement("external-library-path", compiler, null);
+				XmlAttribute attr = externalLibs.OwnerDocument.CreateAttribute("append");
+				attr.InnerXml = "true";
+				externalLibs.Attributes.Append(attr);
+
+				foreach (string libPath in Project.CompilerOptions.ExternalLibraryPaths)
+				{
+					string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+					CreateElement("path-element", externalLibs, absLibPath);
+				}
+			} 
 
             // add namespace, save config to obj folder
             config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
