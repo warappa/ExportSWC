@@ -6,8 +6,9 @@ using System.Text;
 
 namespace ExportSWC
 {
-    [Serializable]
-    public class Settings {
+	[Serializable]
+	public class Settings
+	{
 		#region ARCHIVED_CODE_UNUSED
 		// no longer using but kept for implementation reference
 		/*public static string[] DEFAULT_NAMESPACES = new string[] { "http://tempuri.org" };
