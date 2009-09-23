@@ -22,7 +22,7 @@ using ExportSWC.Tracing;
 
 namespace ExportSWC
 {
-	public class SWCCompiler
+	public class SWCBuilder
 	{
 		private bool _anyErrors;
 		protected bool _running;

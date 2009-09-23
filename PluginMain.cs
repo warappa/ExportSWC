@@ -60,7 +60,7 @@ namespace ExportSWC
 		private bool _anyErrors;
 		private bool _running;
 
-		protected SWCCompiler _compiler = new SWCCompiler();
+		protected SWCBuilder _compiler = new SWCBuilder();
 		protected ITraceable _tracer = new TraceManagerTracer();
 
 		#region Required Properties

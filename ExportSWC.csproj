@@ -100,7 +100,7 @@
     </Compile>
     <Compile Include="Resources\LocaleHelper.cs" />
     <Compile Include="Settings.cs" />
-    <Compile Include="SWCCompiler.cs" />
+    <Compile Include="SWCBuilder.cs" />
     <Compile Include="SWCProject.cs" />
     <Compile Include="Tracing\Interfaces\ITraceable.cs" />
     <Compile Include="Tracing\TraceManagerTracer.cs" />
