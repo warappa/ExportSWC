@@ -808,7 +808,14 @@ namespace ExportSWC
 		/// </summary>
 		protected string FlexSdkBase
 		{
-			get { return (string)AS3Context.PluginMain.Settings.FlexSDK.Clone(); }
+			get 
+			{
+				// Patch: Use custom SDK path (if available)
+				if (_project == null ||
+					string.IsNullOrEmpty(_project.CompilerOptions.CustomSDK) == true)
+					return AS3Context.PluginMain.Settings.FlexSDK;
+				return _project.CompilerOptions.CustomSDK;
+			}
 		}
 
 		protected DirectoryInfo ProjectPath
