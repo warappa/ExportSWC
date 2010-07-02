@@ -50,6 +50,13 @@ namespace ExportSWC
 			set { makeMXI = value; }
 		}
 
+		private bool integrateAsDoc = true;
+		public bool IntegrateAsDoc
+		{
+			get { return integrateAsDoc; }
+			set { integrateAsDoc = value; }
+		}
+
 		private bool launchAEM;
 		public bool LaunchAEM
 		{

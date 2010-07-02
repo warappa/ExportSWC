@@ -13,6 +13,7 @@ namespace ExportSWC
 {
     public partial class ProjectOptions : Form
     {
+		private SWCBuilder builder;
         private SWCProject project;
         private AutoCompleteStringCollection classCache;
 
@@ -21,10 +22,12 @@ namespace ExportSWC
             InitializeComponent();
         }
 
-        public ProjectOptions(SWCProject swcp)
+        public ProjectOptions(SWCProject swcp, SWCBuilder builder)
         {
             InitializeComponent();
+
             project = swcp;
+			this.builder = builder;
 
             cb_intrinsic_flex.Checked   = swcp.FlexIncludeASI;
 
@@ -45,6 +48,8 @@ namespace ExportSWC
 
             textBoxFlexBin.Text         = project.FlexBinPath;
             textBoxFlashBin.Text        = project.FlashBinPath;
+
+			checkBoxAsDoc.Checked		= swcp.IntegrateAsDoc;
 
             CheckFlexDir();
             CheckFlashDir();
@@ -83,9 +88,9 @@ namespace ExportSWC
             tb_compclass.AutoCompleteCustomSource = classCache;
         }
 
-        internal static DialogResult ShowDialog(SWCProject SwcProject)
+        internal static DialogResult ShowDialog(SWCProject swcProject, SWCBuilder builder)
         {
-            ProjectOptions po = new ProjectOptions(SwcProject);
+			ProjectOptions po = new ProjectOptions(swcProject, builder);
             return po.ShowDialog();
         }
 
@@ -110,6 +115,8 @@ namespace ExportSWC
             project.MXIDescription  = tb_desc.Text;
             project.MXIUIAccessText = tb_uiaccess.Text;
             project.MXIVersion      = tb_comver.Text;
+
+			project.IntegrateAsDoc = checkBoxAsDoc.Checked;
 
             project.FlexBinPath = textBoxFlexBin.Text;
             project.FlashBinPath = textBoxFlashBin.Text;

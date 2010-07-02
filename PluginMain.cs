@@ -455,7 +455,8 @@ namespace ExportSWC
 
 		void Configure(object sender, EventArgs e)
 		{
-			DialogResult dr = ProjectOptions.ShowDialog(SwcProject);
+			DialogResult dr = ProjectOptions.ShowDialog(SwcProject, _compiler);
+
 			if (dr == DialogResult.OK)
 				SwcProject.Save(SWCProjectPath);
 		}
@@ -470,7 +471,11 @@ namespace ExportSWC
 		/// <param name="e">the event args</param>
 		protected void Build(object sender, System.EventArgs e)
 		{
+			_button.Enabled = false;
+			
 			_compiler.Build(Project, SwcProject, new TraceManagerTracer());
+			
+			_button.Enabled = true;
 		}
 
 		protected void PreBuildClick(object sender, EventArgs e)
