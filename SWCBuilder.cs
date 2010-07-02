@@ -151,7 +151,7 @@ namespace ExportSWC
             arguments += "-exclude-dependencies=true ";
 			
             // the target-player
-            arguments += "-target-player="+((AS3Project)_project).MovieOptions.Version.ToString();
+            arguments += "-target-player="+GetFlexSdkVersionString();
 
 			string tmpPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
 			Directory.CreateDirectory(tmpPath);
@@ -809,7 +809,7 @@ namespace ExportSWC
 			CreateElement("use-network", config.DocumentElement, _project.CompilerOptions.UseNetwork.ToString().ToLower());
 
 			// target
-			CreateElement("target-player", config.DocumentElement, ((AS3Project)_project).MovieOptions.Version.ToString());
+			CreateElement("target-player", config.DocumentElement, GetFlexSdkVersionString());
 
 			// warnings
 			CreateElement("warnings", config.DocumentElement, _project.CompilerOptions.Warnings.ToString().ToLower());
@@ -1150,6 +1150,17 @@ namespace ExportSWC
 				return path;
 
 			return Path.GetFullPath(ProjectPath.FullName + "\\" + path);
+		}
+
+		protected string GetFlexSdkVersionString()
+		{
+			int version = ((AS3Project)_project).MovieOptions.Version;
+			
+			if (version < 11)
+				return version.ToString();
+			if (version == 11)
+				return "10.1";
+			return (version - 1).ToString();
 		}
 		#endregion
 
