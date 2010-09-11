@@ -506,10 +506,10 @@ namespace ExportSWC
 				for (j = 0; j < i; j++)
 					tmpPath += strsRoot[j] + "\\";
 
-				tmpPath = tmpPath.Substring(0, tmpPath.Length - 1);
-
-				if (targetPath.Contains(tmpPath))
+				if ((targetPath + "\\").Contains(tmpPath))
 				{
+					tmpPath = tmpPath.Substring(0, tmpPath.Length - 1);
+
 					tmpPath += "\\";
 					count = 0;
 
