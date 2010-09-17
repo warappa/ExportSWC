@@ -594,8 +594,8 @@ namespace ExportSWC
 
 		private string SWCProjectPath
 		{
-			//get { return ProjectPath.FullName + "\\" + Project.Name + ".lxml"; }
-			get { return ProjectPath.FullName + "\\SWCSettings.lxml"; }
+			get { return ProjectPath.FullName + "\\" + Project.Name + ".lxml"; }
+			//get { return ProjectPath.FullName + "\\SWCSettings.lxml"; }
 		}
 
 		/// <summary>
