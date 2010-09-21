@@ -155,7 +155,7 @@ namespace ExportSWC
 						if (project != null && project.Language.ToLower() == "as3")
 						{
 							SwcProject = SWCProject.Load(SWCProjectPath);
-
+							
 							if (SwcProject.FlexBinPath == "")
 								SwcProject.FlexBinPath = ".\\bin\\" + project.Name + ".swc";
 							if (SwcProject.FlashBinPath == "")
