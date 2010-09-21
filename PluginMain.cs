@@ -55,7 +55,7 @@ namespace ExportSWC
 		private ICollection<GenericNode> FilesTreeView;
 
 		/* SWC project */
-		private SWCProject SwcProject;
+		private SWCProject CurrentSwcProject;
 
 		private bool _anyErrors;
 		private bool _running;
@@ -145,7 +145,7 @@ namespace ExportSWC
 		{
 			switch (e.Type)
 			{
-				// Catches Project change event and display the active project path
+				// Catches CurrentProject change event and display the active project path
 				case EventType.Command:
 					string cmd = (e as DataEvent).Action;
 					if (cmd == "ProjectManager.Project")
@@ -154,12 +154,9 @@ namespace ExportSWC
 						// update button when project opens / closes
 						if (project != null && project.Language.ToLower() == "as3")
 						{
-							SwcProject = SWCProject.Load(SWCProjectPath);
-							
-							if (SwcProject.FlexBinPath == "")
-								SwcProject.FlexBinPath = ".\\bin\\" + project.Name + ".swc";
-							if (SwcProject.FlashBinPath == "")
-								SwcProject.FlashBinPath = ".\\bin\\" + project.Name + ".flash.swc";
+							CurrentSwcProject = SWCProject.Load(CurrentSWCProjectPath);
+
+							InitProjectFile(CurrentProject, CurrentSwcProject);
 
 							_button.Enabled = true;
 						}
@@ -178,15 +175,23 @@ namespace ExportSWC
 							InjectContextMenuItems(tree, (ArrayList)(e as DataEvent).Data);
 					}
 					//If the current project isn't a AS3Project: don't try to repaint the treenodes (->exception!)
-					if (Project != null)
+					if (CurrentProject != null)
 						RepaintNodes();
 					break;
 			}
 		}
 
+		private void InitProjectFile(AS3Project project, SWCProject swcProject)
+		{
+			if (swcProject.FlexBinPath == "")
+				swcProject.FlexBinPath = ".\\bin\\" + project.Name + ".swc";
+			if (swcProject.FlashBinPath == "")
+				swcProject.FlashBinPath = ".\\bin\\" + project.Name + ".flash.swc";
+		}
+
 		private void RepaintNodes()
 		{
-			if (FilesTreeView == null || SwcProject == null)
+			if (FilesTreeView == null || CurrentSwcProject == null)
 				return;
 			PaintTreeNodes(FilesTreeView);
 		}
@@ -195,14 +200,14 @@ namespace ExportSWC
 		{
 			foreach (GenericNode node in nodes)
 			{
-				if (node.BackingPath.Contains(ProjectPath.FullName))
+				if (node.BackingPath.Contains(CurrentProjectPath.FullName))
 				{
 					//Check if the backing path is longer than the project path...
-					if (ProjectPath.FullName.Length < node.BackingPath.Length)
+					if (CurrentProjectPath.FullName.Length < node.BackingPath.Length)
 					{
-						if (SwcProject.Flex_IgnoreClasses.Contains(node.BackingPath.Substring(ProjectPath.FullName.Length)))
+						if (CurrentSwcProject.Flex_IgnoreClasses.Contains(node.BackingPath.Substring(CurrentProjectPath.FullName.Length)))
 							node.ForeColorRequest = Color.DarkGray;
-						if (SwcProject.CS3_IgnoreClasses.Contains(node.BackingPath.Substring(ProjectPath.FullName.Length)))
+						if (CurrentSwcProject.CS3_IgnoreClasses.Contains(node.BackingPath.Substring(CurrentProjectPath.FullName.Length)))
 							node.ForeColorRequest = Color.DarkGray;
 					}
 					if (node.GetType() == typeof(TreeNode))
@@ -245,10 +250,10 @@ namespace ExportSWC
 			{
 				GenericNode node = tree.SelectedNode;
 
-				if (node.BackingPath.Length <= ProjectPath.FullName.Length)
+				if (node.BackingPath.Length <= CurrentProjectPath.FullName.Length)
 					return;
 
-				string nodeRelative = GetRelativePath(ProjectPath.FullName, node.BackingPath);
+				string nodeRelative = GetRelativePath(CurrentProjectPath.FullName, node.BackingPath);
 				if (nodeRelative == null)
 					nodeRelative = node.BackingPath;
 				nodeRelative = nodeRelative.ToLower();
@@ -261,14 +266,14 @@ namespace ExportSWC
 					ToolStripMenuItem ignoreCs3 = new ToolStripMenuItem("Exclude from CS3 SWC");
 					ignoreCs3.CheckOnClick = true;
 					ignoreCs3.Tag = node;
-					ignoreCs3.Checked = SwcProject.CS3_IgnoreClasses.Contains(nodeRelative);
+					ignoreCs3.Checked = CurrentSwcProject.CS3_IgnoreClasses.Contains(nodeRelative);
 					ignoreCs3.CheckedChanged += new EventHandler(ignoreCs3_CheckedChanged);
 
 					/* flex ignore item */
 					ToolStripMenuItem ignoreFlex = new ToolStripMenuItem("Exclude from Flex SWC");
 					ignoreFlex.CheckOnClick = true;
 					ignoreFlex.Tag = node;
-					ignoreFlex.Checked = SwcProject.Flex_IgnoreClasses.Contains(nodeRelative);
+					ignoreFlex.Checked = CurrentSwcProject.Flex_IgnoreClasses.Contains(nodeRelative);
 					ignoreFlex.CheckedChanged += new EventHandler(ignoreFlex_CheckedChanged);
 
 					tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
@@ -279,10 +284,43 @@ namespace ExportSWC
 				// as3 project file
 				if (Path.GetExtension(node.BackingPath).ToLower() == ".as3proj")
 				{
+					ToolStripMenuItem compileToSWC = new ToolStripMenuItem("Compile to SWC");
+					compileToSWC.Tag = node;
+					compileToSWC.Click += delegate
+					                      	{
+					                      		AS3Project proj = AS3Project.Load(node.BackingPath);
+												
+												_compiler.Build(proj, GetSwcProjectSettings(proj), new TraceManagerTracer());
+					                      	};
 
+					ToolStripMenuItem openSwcSettings = new ToolStripMenuItem("SWC Settings");
+					openSwcSettings.Tag = node;
+					openSwcSettings.Click += delegate
+						{
+							AS3Project proj = AS3Project.Load(node.BackingPath);
+
+							ConfigureSwcProject(proj, GetSwcProjectSettings(proj));
+						};
+
+					tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
+					tree.ContextMenuStrip.Items.Add(compileToSWC);
+					tree.ContextMenuStrip.Items.Add(openSwcSettings);
 				}
 			}
 			//tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
+		}
+
+		private SWCProject GetSwcProjectSettings(AS3Project as3Project)
+		{
+			SWCProject swcProject = SWCProject.Load(GetSwcProjectSettingsPath(as3Project));
+
+			InitProjectFile(as3Project, swcProject);
+
+			return swcProject;
+		}
+		private string GetSwcProjectSettingsPath(AS3Project as3Project)
+		{
+			return (new DirectoryInfo(as3Project.Directory)).FullName + "\\" + as3Project.Name + ".lxml";
 		}
 
 		void ignoreFlex_CheckedChanged(object sender, EventArgs e)
@@ -290,42 +328,42 @@ namespace ExportSWC
 			ToolStripMenuItem exBtn = (ToolStripMenuItem)sender;
 			GenericNode node = (GenericNode)exBtn.Tag;
 
-			string nodePath = GetRelativePath(ProjectPath.FullName, node.BackingPath);
+			string nodePath = GetRelativePath(CurrentProjectPath.FullName, node.BackingPath);
 
-			SwcProject.Flex_IgnoreClasses.Remove(nodePath);
+			CurrentSwcProject.Flex_IgnoreClasses.Remove(nodePath);
 
 			if (exBtn.Checked)
 			{
-				SwcProject.Flex_IgnoreClasses.Add(nodePath);
+				CurrentSwcProject.Flex_IgnoreClasses.Add(nodePath);
 				node.ForeColorRequest = Color.DarkGray;
 			}
 			else
 			{
-				if (!IsFileIgnored(nodePath, SwcProject.CS3_IgnoreClasses))
+				if (!IsFileIgnored(nodePath, CurrentSwcProject.CS3_IgnoreClasses))
 					node.ForeColorRequest = Color.Black;
 			}
-			SwcProject.Save(SWCProjectPath);
+			CurrentSwcProject.Save(CurrentSWCProjectPath);
 		}
 
 		void ignoreCs3_CheckedChanged(object sender, EventArgs e)
 		{
 			ToolStripMenuItem exBtn = (ToolStripMenuItem)sender;
 			GenericNode node = (GenericNode)exBtn.Tag;
-			string nodePath = GetRelativePath(ProjectPath.FullName, node.BackingPath);
+			string nodePath = GetRelativePath(CurrentProjectPath.FullName, node.BackingPath);
 
-			SwcProject.CS3_IgnoreClasses.Remove(nodePath);
+			CurrentSwcProject.CS3_IgnoreClasses.Remove(nodePath);
 
 			if (exBtn.Checked)
 			{
-				SwcProject.CS3_IgnoreClasses.Add(nodePath);
+				CurrentSwcProject.CS3_IgnoreClasses.Add(nodePath);
 				node.ForeColorRequest = Color.DarkGray;
 			}
 			else
 			{
-				if (!IsFileIgnored(nodePath, SwcProject.Flex_IgnoreClasses))
+				if (!IsFileIgnored(nodePath, CurrentSwcProject.Flex_IgnoreClasses))
 					node.ForeColorRequest = Color.Black;
 			}
-			SwcProject.Save(SWCProjectPath);
+			CurrentSwcProject.Save(CurrentSWCProjectPath);
 		}
 
 		#endregion
@@ -455,10 +493,15 @@ namespace ExportSWC
 
 		void Configure(object sender, EventArgs e)
 		{
-			DialogResult dr = ProjectOptions.ShowDialog(SwcProject, _compiler);
+			ConfigureSwcProject(CurrentProject, CurrentSwcProject);
+		}
+
+		private void ConfigureSwcProject(AS3Project project, SWCProject swcProject)
+		{
+			DialogResult dr = ProjectOptions.ShowDialog(swcProject, _compiler);
 
 			if (dr == DialogResult.OK)
-				SwcProject.Save(SWCProjectPath);
+				swcProject.Save(GetSwcProjectSettingsPath(project));
 		}
 		#endregion
 
@@ -472,20 +515,20 @@ namespace ExportSWC
 		protected void Build(object sender, System.EventArgs e)
 		{
 			_button.Enabled = false;
-			
-			_compiler.Build(Project, SwcProject, new TraceManagerTracer());
+
+			_compiler.Build(CurrentProject, CurrentSwcProject, _tracer);
 			
 			_button.Enabled = true;
 		}
 
 		protected void PreBuildClick(object sender, EventArgs e)
 		{
-			_compiler.PreBuild(Project, SwcProject, _tracer);
+			_compiler.PreBuild(CurrentProject, CurrentSwcProject, _tracer);
 		}
 
 		protected void CompileClick(object sender, EventArgs e)
 		{
-			_compiler.Compile(Project, SwcProject, _tracer);
+			_compiler.Compile(CurrentProject, CurrentSwcProject, _tracer);
 		}
 
 		#endregion
@@ -554,7 +597,7 @@ namespace ExportSWC
 			if (Path.IsPathRooted(path))
 				return path;
 
-			return Path.GetFullPath(ProjectPath.FullName + "\\" + path);
+			return Path.GetFullPath(CurrentProjectPath.FullName + "\\" + path);
 		}
 		#endregion
 
@@ -562,46 +605,46 @@ namespace ExportSWC
 		#region properties
 		private string CompcConfigPath_Flex
 		{
-			get { return LibMakerDir + Project.Name + ".flex.compc.xml"; }
+			get { return CurrentLibMakerDir + CurrentProject.Name + ".flex.compc.xml"; }
 		}
 
 		private string CompcBinPath_Flex
 		{
-			//get { return LibMakerDir + Project.Name + ".flex.swc"; }
-			get { return Path.Combine(ProjectPath.FullName, SwcProject.FlexBinPath); }
+			//get { return CurrentLibMakerDir + CurrentProject.Name + ".flex.swc"; }
+			get { return Path.Combine(CurrentProjectPath.FullName, CurrentSwcProject.FlexBinPath); }
 		}
 
 		private string CompcConfigPath_Flash
 		{
-			get { return LibMakerDir + Project.Name + ".flash.compc.xml"; }
+			get { return CurrentLibMakerDir + CurrentProject.Name + ".flash.compc.xml"; }
 		}
 
 		private string CompcBinPath_Flash
 		{
-			//get { return LibMakerDir + Project.Name + ".flash.swc"; }
-			get { return Path.Combine(ProjectPath.FullName, SwcProject.FlashBinPath); }
+			//get { return CurrentLibMakerDir + CurrentProject.Name + ".flash.swc"; }
+			get { return Path.Combine(CurrentProjectPath.FullName, CurrentSwcProject.FlashBinPath); }
 		}
 
-		private string ASIDir
+		private string CurrentASIDir
 		{
-			get { return ProjectPath.FullName + "\\asi\\"; }
+			get { return CurrentProjectPath.FullName + "\\asi\\"; }
 		}
 
-		private string MXIPath
+		private string CurrentMXIPath
 		{
-			get { return LibMakerDir + Project.Name + ".mxi"; }
+			get { return CurrentLibMakerDir + CurrentProject.Name + ".mxi"; }
 		}
 
-		private string SWCProjectPath
+		private string CurrentSWCProjectPath
 		{
-			get { return ProjectPath.FullName + "\\" + Project.Name + ".lxml"; }
-			//get { return ProjectPath.FullName + "\\SWCSettings.lxml"; }
+			get { return GetSwcProjectSettingsPath(CurrentProject); }
+			//get { return CurrentProjectPath.FullName + "\\SWCSettings.lxml"; }
 		}
 
 		/// <summary>
 		/// The current AS3 project.
 		/// </summary>
-		private AS3Project Project
+		private AS3Project CurrentProject
 		{
 			get { return PluginBase.CurrentProject as AS3Project; }
 		}
@@ -614,16 +657,16 @@ namespace ExportSWC
 			get { return (string)AS3Context.PluginMain.Settings.FlexSDK.Clone(); }
 		}
 
-		private DirectoryInfo ProjectPath
+		private DirectoryInfo CurrentProjectPath
 		{
-			get { return new DirectoryInfo(Project.Directory); }
+			get { return new DirectoryInfo(CurrentProject.Directory); }
 		}
 
-		private string LibMakerDir
+		private string CurrentLibMakerDir
 		{
 			get
 			{
-				string p = ProjectPath.FullName + "\\obj\\";
+				string p = CurrentProjectPath.FullName + "\\obj\\";
 				if (!Directory.Exists(p))
 					Directory.CreateDirectory(p);
 				return p;

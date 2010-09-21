@@ -11,9 +11,11 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyCulture("")]
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
-[assembly: AssemblyVersion("2.1.*")]
+[assembly: AssemblyVersion("2.2.*")]
 
 /* [Change Log]
  * 1.1.0.* - built against FD3b8, source released to SourceForge.net
  * 2.0.0.0 - FatSWC support
+ * 2.1.*   - Settingsfile named like AS3Project file
+ * 2.2.*   - Project file contextmenu integration
  */
