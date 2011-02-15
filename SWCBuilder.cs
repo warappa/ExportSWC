@@ -167,7 +167,7 @@ namespace ExportSWC
 			ProcessRunner process = new PluginCore.Utilities.ProcessRunner();
 			process.Error += new LineOutputHandler(process_Error);
 			process.Output += new LineOutputHandler(process_Output);
-			process.WorkingDirectory = ProjectPath.FullName;
+			//process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
 			process.RedirectInput = true;
 
 			process.Run(Path.Combine(FlexSdkBase, @"bin\asdoc.exe"), arguments);
@@ -648,7 +648,7 @@ namespace ExportSWC
 				ProcessRunner process = new PluginCore.Utilities.ProcessRunner();
 				process.Error += new LineOutputHandler(process_Error);
 				process.Output += new LineOutputHandler(process_Output);
-				process.WorkingDirectory = ProjectPath.FullName;
+				//process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
 				process.RedirectInput = true;				
 				process.Run(compc.FullName, cmdArgs);
 
