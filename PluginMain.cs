@@ -198,16 +198,25 @@ namespace ExportSWC
 
 		private void PaintTreeNodes(ICollection<GenericNode> nodes)
 		{
+			string projPathFNm = CurrentProjectPath.FullName;
+			int projPathFNmLen = projPathFNm.Length;
+			string nodeBackPath;
+			string nodeBackPathSub;
+
 			foreach (GenericNode node in nodes)
 			{
-				if (node.BackingPath.Contains(CurrentProjectPath.FullName))
+				nodeBackPath = node.BackingPath;
+
+				if (nodeBackPath.Contains(projPathFNm))
 				{
 					//Check if the backing path is longer than the project path...
-					if (CurrentProjectPath.FullName.Length < node.BackingPath.Length)
+					if (projPathFNmLen < nodeBackPath.Length)
 					{
-						if (CurrentSwcProject.Flex_IgnoreClasses.Contains(node.BackingPath.Substring(CurrentProjectPath.FullName.Length)))
+						nodeBackPathSub = nodeBackPath.Substring(projPathFNmLen);
+
+						if (CurrentSwcProject.Flex_IgnoreClasses.Contains(nodeBackPathSub))
 							node.ForeColorRequest = Color.DarkGray;
-						if (CurrentSwcProject.CS3_IgnoreClasses.Contains(node.BackingPath.Substring(CurrentProjectPath.FullName.Length)))
+						if (CurrentSwcProject.CS3_IgnoreClasses.Contains(nodeBackPathSub))
 							node.ForeColorRequest = Color.DarkGray;
 					}
 					if (node.GetType() == typeof(TreeNode))
