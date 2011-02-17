@@ -661,10 +661,10 @@ namespace ExportSWC
 		/// <summary>
 		/// The Flex SDK base path.
 		/// </summary>
-		private string FlexSdkBase
+		/*private string FlexSdkBase
 		{
 			get { return (string)AS3Context.PluginMain.Settings.FlexSDK.Clone(); }
-		}
+		}*/
 
 		private DirectoryInfo CurrentProjectPath
 		{

@@ -19,6 +19,7 @@ using ASCompletion.Model;
 using ASCompletion.Context;
 using ExportSWC.Tracing.Interfaces;
 using ExportSWC.Tracing;
+using ProjectManager.Actions;
 
 namespace ExportSWC
 {
@@ -1004,10 +1005,7 @@ namespace ExportSWC
 			get 
 			{
 				// Patch: Use custom SDK path (if available)
-				if (_project == null ||
-					string.IsNullOrEmpty(_project.CompilerOptions.CustomSDK) == true)
-					return AS3Context.PluginMain.Settings.FlexSDK;
-				return _project.CompilerOptions.CustomSDK;
+				return BuildActions.GetCompilerPath(_project);
 			}
 		}
 
@@ -1154,13 +1152,7 @@ namespace ExportSWC
 
 		protected string GetFlexSdkVersionString()
 		{
-			int version = ((AS3Project)_project).MovieOptions.Version;
-			
-			if (version < 11)
-				return version.ToString();
-			if (version == 11)
-				return "10.1";
-			return (version - 1).ToString();
+			return ((AS3Project)_project).MovieOptions.Version;			
 		}
 		#endregion
 
