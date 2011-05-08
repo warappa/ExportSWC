@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyCulture("")]
 [assembly: AssemblyDelaySign(false)]
 [assembly: AssemblyKeyFile("")]
-[assembly: AssemblyVersion("4.0.*")]
+[assembly: AssemblyVersion("4.1.*")]
 
 /* [Change Log]
  * 1.1.0.* - built against FD3b8, source released to SourceForge.net
@@ -20,4 +20,5 @@ using System.Runtime.CompilerServices;
  * 2.2.*   - Project file contextmenu integration
  * 2.3.*   - Workingdirectory and TreeView performance fix (18.2.2011)
  * 4.0.*   - FD4 Support (18.2.2011)
+ * 4.1.*   - AIR Support (8.5.2011)
  */
