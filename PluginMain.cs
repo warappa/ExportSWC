@@ -687,5 +687,11 @@ namespace ExportSWC
 		
 		#endregion
 
+
+
+		public int Api
+		{
+			get { return 1; }
+		}
 	}
 }
