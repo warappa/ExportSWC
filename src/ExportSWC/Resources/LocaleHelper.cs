@@ -1,10 +1,7 @@
 using System;
-using System.Text;
 using System.Resources;
 using System.Reflection;
-using System.Collections.Generic;
 using PluginCore.Localization;
-using PluginCore;
 using System.Drawing;
 
 namespace ExportSWC.Resources
@@ -18,19 +15,19 @@ namespace ExportSWC.Resources
         /// </summary>
         public static void Initialize(LocaleVersion locale)
         {
-            String path = "ExportSWC.Resources." + locale.ToString();
+            string path = "ExportSWC.Resources." + locale.ToString();
             resources = new ResourceManager(path, Assembly.GetExecutingAssembly());
         }
 
         /// <summary>
         /// Loads a string from the internal resources
         /// </summary>
-        public static String GetString(String identifier)
+        public static string GetString(string identifier)
         {
             return resources.GetString(identifier);
         }
 
-		public static Image GetImage(String identifier) {
+		public static Image GetImage(string identifier) {
 			return (Image)resources.GetObject(identifier);
 		}
 

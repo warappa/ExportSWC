@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ExportSWC.Tracing
+﻿namespace ExportSWC.Tracing
 {
-	public enum TraceMessageType
+    public enum TraceMessageType
 	{
 		Verbose = 0,
 		Message = 1,

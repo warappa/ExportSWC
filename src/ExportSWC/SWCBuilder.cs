@@ -20,7 +20,6 @@ using ASCompletion.Context;
 using ExportSWC.Tracing.Interfaces;
 using ExportSWC.Tracing;
 using ProjectManager.Actions;
-using ProjectManager.Projects;
 
 namespace ExportSWC
 {

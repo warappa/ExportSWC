@@ -3,42 +3,28 @@ using System.IO;
 using System.Drawing;
 using System.Windows.Forms;
 using System.ComponentModel;
-using WeifenLuo.WinFormsUI.Docking;
 using ExportSWC.Resources;
 using PluginCore.Localization;
 using PluginCore.Utilities;
 using PluginCore.Managers;
 using PluginCore.Helpers;
 using PluginCore;
-using AS3Context;
-using ASCompletion.Context;
 using System.Collections.Generic;
-using ProjectManager.Projects;
 using ProjectManager.Projects.AS3;
-using System.Xml;
-using System.Diagnostics;
 using ProjectManager.Controls.TreeView;
-using System.Collections;
-using System.Threading;
-using ICSharpCode.SharpZipLib.Zip;
-using ICSharpCode.SharpZipLib.Core;
-using System.Drawing.Imaging;
-using System.Text;
-using ProjectManager.Helpers;
-using ASCompletion.Model;
 using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
 
 namespace ExportSWC
 {
-	public class PluginMain : IPlugin
+    public class PluginMain : IPlugin
 	{
-		private String pluginName = "ExportSWC";
-		private String pluginGuid = "91cbed14-18db-11dd-9772-818b56d89593";
-		private String pluginHelp = "www.flashdevelop.org/community/";
-		private String pluginDesc = "Export SWC using compc and project compiler settings.";
-		private String pluginAuth = "Ali Chamas & Ben Babik & David Rettenbacher";
-		private String settingFilename;
+		private string pluginName = "ExportSWC";
+		private string pluginGuid = "91cbed14-18db-11dd-9772-818b56d89593";
+		private string pluginHelp = "www.flashdevelop.org/community/";
+		private string pluginDesc = "Export SWC using compc and project compiler settings.";
+		private string pluginAuth = "Ali Chamas & Ben Babik & David Rettenbacher";
+		private string settingFilename;
 		private Settings settingObject;
 		private Image pluginImage;
 
@@ -68,7 +54,7 @@ namespace ExportSWC
 		/// <summary>
 		/// Name of the plugin
 		/// </summary> 
-		public String Name
+		public string Name
 		{
 			get { return this.pluginName; }
 		}
@@ -76,7 +62,7 @@ namespace ExportSWC
 		/// <summary>
 		/// GUID of the plugin
 		/// </summary>
-		public String Guid
+		public string Guid
 		{
 			get { return this.pluginGuid; }
 		}
@@ -84,7 +70,7 @@ namespace ExportSWC
 		/// <summary>
 		/// Author of the plugin
 		/// </summary> 
-		public String Author
+		public string Author
 		{
 			get { return this.pluginAuth; }
 		}
@@ -92,7 +78,7 @@ namespace ExportSWC
 		/// <summary>
 		/// Description of the plugin
 		/// </summary> 
-		public String Description
+		public string Description
 		{
 			get { return this.pluginDesc; }
 		}
@@ -100,7 +86,7 @@ namespace ExportSWC
 		/// <summary>
 		/// Web address for help
 		/// </summary> 
-		public String Help
+		public string Help
 		{
 			get { return this.pluginHelp; }
 		}
@@ -109,7 +95,7 @@ namespace ExportSWC
 		/// Object that contains the settings
 		/// </summary>
 		[Browsable(false)]
-		public Object Settings
+		public object Settings
 		{
 			get { return this.settingObject; }
 		}
@@ -141,7 +127,7 @@ namespace ExportSWC
 		/// <summary>
 		/// Handles the incoming events
 		/// </summary>
-		public void HandleEvent(Object sender, NotifyEvent e, HandlingPriority prority)
+		public void HandleEvent(object sender, NotifyEvent e, HandlingPriority prority)
 		{
 			switch (e.Type)
 			{
@@ -234,7 +220,7 @@ namespace ExportSWC
 			if (!File.Exists(this.settingFilename)) this.SaveSettings();
 			else
 			{
-				Object obj = ObjectSerializer.Deserialize(this.settingFilename, this.settingObject);
+                object obj = ObjectSerializer.Deserialize(this.settingFilename, this.settingObject);
 				this.settingObject = (Settings)obj;
 			}
 		}
@@ -383,7 +369,7 @@ namespace ExportSWC
 		/// </summary>
 		public void InitBasics()
 		{
-			String dataPath = Path.Combine(PathHelper.DataDir, "ExportSWC");
+            string dataPath = Path.Combine(PathHelper.DataDir, "ExportSWC");
 			if (!Directory.Exists(dataPath))
 				Directory.CreateDirectory(dataPath);
 			this.settingFilename = Path.Combine(dataPath, "Settings.fdb");

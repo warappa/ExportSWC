@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Xml.Serialization;
 using System.IO;
 using System.Drawing;
 
 namespace ExportSWC
 {
-	[Serializable]
+    [Serializable]
 	public class SWCProject
 	{
 		public SWCProject()
@@ -238,7 +237,7 @@ namespace ExportSWC
 			vers[1] = (Convert.ToInt32(vers[1]) + b).ToString();
 			vers[2] = (Convert.ToInt32(vers[2]) + c).ToString();
 
-			mxiVersion = String.Format("{0}.{1}.{2}", vers[0], vers[1], vers[2]);
+			mxiVersion = string.Format("{0}.{1}.{2}", vers[0], vers[1], vers[2]);
 		}
 	}
 
