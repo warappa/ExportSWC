@@ -3,11 +3,11 @@ using System;
 namespace ExportSWC
 {
     [Serializable]
-	public class Settings
-	{
-		#region ARCHIVED_CODE_UNUSED
-		// no longer using but kept for implementation reference
-		/*public static string[] DEFAULT_NAMESPACES = new string[] { "http://tempuri.org" };
+    public class Settings
+    {
+        #region ARCHIVED_CODE_UNUSED
+        // no longer using but kept for implementation reference
+        /*public static string[] DEFAULT_NAMESPACES = new string[] { "http://tempuri.org" };
 		private string[] _namespaces = DEFAULT_NAMESPACES;
 		[Category("Compiler"), Description("Specify any namespaces to pass to the compiler."), DefaultValue(new string[] { "http://tempuri.org" })]
 		public string[] NameSpaces {
@@ -30,7 +30,6 @@ namespace ExportSWC
 			get { return _namespace; }
 			set { _namespace = value; }
 		}*/
-		#endregion
-	}
-
+        #endregion
+    }
 }

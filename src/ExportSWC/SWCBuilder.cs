@@ -1,25 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
-using ProjectManager.Projects.AS3;
-using ICSharpCode.SharpZipLib.Zip;
-using System.Xml;
-using System.IO;
 using System.Diagnostics;
-using PluginCore.Managers;
-using PluginCore;
-using System.Threading;
-using PluginCore.Utilities;
-using PluginCore.Helpers;
-using ExportSWC.Resources;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
+using System.Text;
+using System.Threading;
 using System.Windows.Forms;
-using ASCompletion.Model;
+using System.Xml;
 using ASCompletion.Context;
-using ExportSWC.Tracing.Interfaces;
+using ASCompletion.Model;
+using ExportSWC.Resources;
 using ExportSWC.Tracing;
+using ExportSWC.Tracing.Interfaces;
+using ICSharpCode.SharpZipLib.Zip;
+using PluginCore;
+using PluginCore.Helpers;
+using PluginCore.Managers;
+using PluginCore.Utilities;
 using ProjectManager.Actions;
+using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
@@ -39,7 +39,9 @@ namespace ExportSWC
         protected void WriteLine(string msg, TraceMessageType messageType)
         {
             if (_tracer == null)
+            {
                 return;
+            }
 
             _tracer.WriteLine(msg, messageType);
         }
@@ -58,7 +60,9 @@ namespace ExportSWC
         public void Build(AS3Project project, SWCProject swcProjectSettings, ITraceable tracer)
         {
             if (_running)
+            {
                 return;
+            }
 
             _running = true;
 
@@ -78,15 +82,15 @@ namespace ExportSWC
 
         private bool IncludeAsDoc()
         {
-            string arguments = "";
+            var arguments = "";
 
-            List<string> classExclusions = _swcProjectSettings.Flex_IgnoreClasses;
+            var classExclusions = _swcProjectSettings.Flex_IgnoreClasses;
 
             // source-path	
             arguments += " -source-path ";
-            foreach (string classPath in _project.Classpaths)
+            foreach (var classPath in _project.Classpaths)
             {
-                string absClassPath = GetProjectItemFullPath(classPath).ToLower();
+                var absClassPath = GetProjectItemFullPath(classPath).ToLower();
 
                 arguments += "\"" + absClassPath + "\" ";
             }
@@ -96,9 +100,9 @@ namespace ExportSWC
             if (_project.CompilerOptions.LibraryPaths.Length > 0)
             {
                 arguments += " -library-path ";
-                foreach (string libPath in _project.CompilerOptions.LibraryPaths)
+                foreach (var libPath in _project.CompilerOptions.LibraryPaths)
                 {
-                    string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+                    var absLibPath = GetProjectItemFullPath(libPath).ToLower();
                     arguments += "\"" + absLibPath + "\" ";
                 }
             }
@@ -107,10 +111,13 @@ namespace ExportSWC
             if (_project.CompilerOptions.IncludeLibraries.Length > 0)
             {
                 if (arguments.Contains("-library-path") == false)
-                    arguments += " -library-path ";
-                foreach (string libPath in _project.CompilerOptions.IncludeLibraries)
                 {
-                    string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+                    arguments += " -library-path ";
+                }
+
+                foreach (var libPath in _project.CompilerOptions.IncludeLibraries)
+                {
+                    var absLibPath = GetProjectItemFullPath(libPath).ToLower();
                     arguments += "\"" + absLibPath + "\" ";
                 }
             }
@@ -120,10 +127,13 @@ namespace ExportSWC
                 _project.CompilerOptions.ExternalLibraryPaths.Length > 0)
             {
                 if (arguments.Contains("-library-path") == false)
-                    arguments += " -library-path ";
-                foreach (string libPath in _project.CompilerOptions.ExternalLibraryPaths)
                 {
-                    string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+                    arguments += " -library-path ";
+                }
+
+                foreach (var libPath in _project.CompilerOptions.ExternalLibraryPaths)
+                {
+                    var absLibPath = GetProjectItemFullPath(libPath).ToLower();
                     arguments += "\"" + absLibPath + "\" ";
                 }
             }
@@ -132,9 +142,9 @@ namespace ExportSWC
             {
                 arguments += " -exclude-classes ";
                 // exclude-classes
-                List<string> origClassExclusions = classExclusions;
+                var origClassExclusions = classExclusions;
                 classExclusions = new List<string>();
-                for (int i = 0; i < origClassExclusions.Count; i++)
+                for (var i = 0; i < origClassExclusions.Count; i++)
                 {
                     classExclusions.Add(GetProjectItemFullPath(origClassExclusions[i]).ToLower());
                     arguments += classExclusions[classExclusions.Count - 1] + " ";
@@ -142,9 +152,9 @@ namespace ExportSWC
             }
 
             arguments += " -doc-classes ";
-            foreach (string classPath in _project.Classpaths)
+            foreach (var classPath in _project.Classpaths)
             {
-                string absClassPath = GetProjectItemFullPath(classPath).ToLower();
+                var absClassPath = GetProjectItemFullPath(classPath).ToLower();
                 arguments += IncludeClassesInAsDoc(absClassPath, string.Empty, classExclusions) + " ";
             }
 
@@ -161,7 +171,7 @@ namespace ExportSWC
                 arguments += "-target-player=" + GetTargetVersionString();
             }
 
-            string tmpPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var tmpPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tmpPath);
 
             WriteLine("Building AsDoc");
@@ -175,14 +185,14 @@ namespace ExportSWC
             {
                 throw new FileNotFoundException("asdoc not found", Path.Combine(FlexSdkBase, @"bin\asdoc.exe"));
             }
+
             WriteLine("Start AsDoc: " + asdoc.FullName + "\n" + arguments);
 
-            ProcessRunner process = new PluginCore.Utilities.ProcessRunner();
+            var process = new PluginCore.Utilities.ProcessRunner();
             process.Error += new LineOutputHandler(process_Error);
             process.Output += new LineOutputHandler(process_Output);
             //process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
             process.RedirectInput = true;
-
 
             process.Run(asdoc.FullName, arguments);
 
@@ -204,9 +214,9 @@ namespace ExportSWC
 
             try
             {
-                FileStream fsZip = new FileStream(CompcBinPath_Flex, FileMode.Open, FileAccess.ReadWrite);
+                var fsZip = new FileStream(CompcBinPath_Flex, FileMode.Open, FileAccess.ReadWrite);
 
-                ZipFile zipFile = new ZipFile(fsZip);
+                var zipFile = new ZipFile(fsZip);
 
                 zipFile.BeginUpdate();
 
@@ -232,29 +242,27 @@ namespace ExportSWC
 
         private void AddContentsOfDirectory(ZipFile zipFile, string path, string basePath, string prefix)
         {
-            string[] files = Directory.GetFiles(path);
+            var files = Directory.GetFiles(path);
 
-            foreach (string fileName in files)
+            foreach (var fileName in files)
             {
                 zipFile.Add(fileName, prefix + fileName.Replace(basePath, ""));
             }
 
-            string[] directories = Directory.GetDirectories(path);
-            foreach (string directoryPath in directories)
+            var directories = Directory.GetDirectories(path);
+            foreach (var directoryPath in directories)
             {
                 AddContentsOfDirectory(zipFile, directoryPath, basePath, "");
             }
         }
 
-
-
         private string IncludeClassesInAsDoc(string sourcePath, string parentPath, List<string> classExclusions)
         {
-            string result = "";
+            var result = "";
             // take the current folder
-            DirectoryInfo directory = new DirectoryInfo(sourcePath);
+            var directory = new DirectoryInfo(sourcePath);
             // add every AS class
-            foreach (FileInfo file in directory.GetFiles())
+            foreach (var file in directory.GetFiles())
             {
                 if (file.Extension == ".as" ||
                     file.Extension == ".mxml")
@@ -268,8 +276,10 @@ namespace ExportSWC
             }
 
             // process sub folders
-            foreach (DirectoryInfo folder in directory.GetDirectories())
+            foreach (var folder in directory.GetDirectories())
+            {
                 result += IncludeClassesInAsDoc(folder.FullName, parentPath + folder.Name + ".", classExclusions);
+            }
 
             return result;
         }
@@ -281,7 +291,9 @@ namespace ExportSWC
         public void Compile(AS3Project project, SWCProject swcProjectSettings, ITraceable tracer)
         {
             if (_running)
+            {
                 return;
+            }
 
             _running = true;
 
@@ -305,7 +317,9 @@ namespace ExportSWC
         public void PreBuild(AS3Project project, SWCProject swcProjectSettings, ITraceable tracer)
         {
             if (_running)
+            {
                 return;
+            }
 
             _running = true;
 
@@ -324,7 +338,7 @@ namespace ExportSWC
 
         protected void Compile()
         {
-            bool buildSuccess = true;
+            var buildSuccess = true;
 
             SaveModifiedDocuments();
 
@@ -336,10 +350,15 @@ namespace ExportSWC
                 buildSuccess &= RunCompc(CompcConfigPath_Flash);
                 PatchFlashSWC();
                 if (_swcProjectSettings.LaunchAEM)
+                {
                     buildSuccess &= BuildMXP();
+                }
             }
+
             if (buildSuccess || _project.AlwaysRunPostBuild)
+            {
                 RunPostBuildEvent();
+            }
 
             _running = false;
         }
@@ -347,15 +366,19 @@ namespace ExportSWC
         protected void RunPreBuildEvent()
         {
             if (_project.PreBuildEvent.Trim().Length == 0)
+            {
                 return;
+            }
 
-            string command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(_project.PreBuildEvent, true);
+            var command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(_project.PreBuildEvent, true);
 
-            Process process = new Process();
-            ProcessStartInfo processStI = new ProcessStartInfo();
-            processStI.FileName = "cmd.exe";
-            processStI.Arguments = "/C " + command;
-            processStI.CreateNoWindow = true;
+            var process = new Process();
+            var processStI = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/C " + command,
+                CreateNoWindow = true
+            };
             process.StartInfo = processStI;
             process.Start();
 
@@ -368,15 +391,19 @@ namespace ExportSWC
         protected void RunPostBuildEvent()
         {
             if (_project.PostBuildEvent.Trim().Length == 0)
+            {
                 return;
+            }
 
-            string command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(_project.PostBuildEvent, true);
+            var command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(_project.PostBuildEvent, true);
 
-            Process process = new Process();
-            ProcessStartInfo processStI = new ProcessStartInfo();
-            processStI.FileName = "cmd.exe";
-            processStI.Arguments = "/C " + command;
-            processStI.CreateNoWindow = true;
+            var process = new Process();
+            var processStI = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/C " + command,
+                CreateNoWindow = true
+            };
             process.StartInfo = processStI;
             process.Start();
 
@@ -387,49 +414,60 @@ namespace ExportSWC
         protected void SaveModifiedDocuments()
         {
             if (PluginBase.MainForm.HasModifiedDocuments == false)
+            {
                 return;
+            }
 
-            foreach (ITabbedDocument document in PluginBase.MainForm.Documents)
+            foreach (var document in PluginBase.MainForm.Documents)
             {
                 if (document.IsModified)
+                {
                     document.Save();
+                }
             }
         }
 
         protected bool BuildMXP()
         {
             // throw new NotImplementedException();
-            ProcessStartInfo pi = new ProcessStartInfo();
-            pi.UseShellExecute = true;
-            pi.FileName = MXIPath;
-            Process process = Process.Start(pi);
+            var pi = new ProcessStartInfo
+            {
+                UseShellExecute = true,
+                FileName = MXIPath
+            };
+            var process = Process.Start(pi);
 
-            bool success = process.WaitForExit(15000);
+            var success = process.WaitForExit(15000);
 
             return success && (process.ExitCode == 0);
         }
 
         protected void PatchFlashSWC()
         {
-            bool livePreviewFile = false;
-            string file = CompcBinPath_Flash;
+            var livePreviewFile = false;
+            var file = CompcBinPath_Flash;
 
             if (!File.Exists(file))
+            {
                 return; // TODO: display error
+            }
 
-            FastZipEvents fze = new FastZipEvents();
-            FastZip fzip = new FastZip(fze);
+            var fze = new FastZipEvents();
+            var fzip = new FastZip(fze);
 
-            string tempDir = Path.GetTempPath().Trim('\\');
+            var tempDir = Path.GetTempPath().Trim('\\');
             tempDir += "\\flashdevelop_swc";
 
             if (Directory.Exists(tempDir))
+            {
                 Directory.Delete(tempDir, true);
+            }
+
             fzip.ExtractZip(file, tempDir, ".*");
 
-            XmlDocument catxml = new XmlDocument();
+            var catxml = new XmlDocument();
 
-            bool loaded = false;
+            var loaded = false;
             while (loaded == false)
             {
                 try
@@ -443,7 +481,7 @@ namespace ExportSWC
                 }
             }
             // <flash version="9.0" build="r494" platform="WIN" />
-            XmlElement fel = CreateElement("flash", catxml.DocumentElement["versions"]);
+            var fel = CreateElement("flash", catxml.DocumentElement["versions"]);
             fel.SetAttribute("version", "9.0");
             fel.SetAttribute("build", "r494");
             fel.SetAttribute("platform", "WIN");
@@ -453,19 +491,30 @@ namespace ExportSWC
 
             // <file path="icon_0.png" mod="1061758088000" />
             if (catxml.DocumentElement["files"] == null)
+            {
                 CreateElement("files", catxml.DocumentElement, string.Empty);
+            }
+
             if (!_swcProjectSettings.ValidImage())
+            {
                 LocaleHelper.GetImage("cs3_component_icon").Save(tempDir + "\\icon.png", ImageFormat.Png);
+            }
             else
+            {
                 Image.FromFile(_swcProjectSettings.CS3_ComponentIconFile).Save(tempDir + "\\icon.png", ImageFormat.Png);
-            XmlElement iel = CreateElement("file", catxml.DocumentElement["files"], string.Empty);
+            }
+
+            var iel = CreateElement("file", catxml.DocumentElement["files"], string.Empty);
             iel.SetAttribute("path", "icon.png");
             iel.SetAttribute("mod", new FileInfo(tempDir + "\\icon.png").LastWriteTimeUtc.ToFileTimeUtc().ToString());
 
             // <component className="Symbol1" name="Symbol 1" icon="icon_0.png"  />
             if (catxml.DocumentElement["components"] == null)
+            {
                 CreateElement("components", catxml.DocumentElement);
-            XmlElement cel = CreateElement("component", catxml.DocumentElement["components"]);
+            }
+
+            var cel = CreateElement("component", catxml.DocumentElement["components"]);
             cel.SetAttribute("className", _swcProjectSettings.CS3_ComponentClass);
             cel.SetAttribute("name", _swcProjectSettings.CS3_ComponentName);
             cel.SetAttribute("icon", "icon.png");
@@ -483,7 +532,7 @@ namespace ExportSWC
                 else
                 {
                     // MAKE BUILDSCRIPT
-                    string lpfile = BuildLivePreview();
+                    var lpfile = BuildLivePreview();
                     if (lpfile == string.Empty)
                     {
                         //TraceManager.AddAsync("*** Error building live preview from class: " + _swcProjectSettings.CS3_PreviewResource);
@@ -493,15 +542,19 @@ namespace ExportSWC
                     else
                     {
                         if (File.Exists(tempDir + "\\livePreview.swf"))
+                        {
                             File.Delete(tempDir + "\\livePreview.swf");
+                        }
+
                         File.Move(lpfile, tempDir + "\\livePreview.swf");
                         livePreviewFile = true;
                     }
                 }
+
                 if (livePreviewFile)
                 {
                     cel.SetAttribute("preview", "livePreview.swf");
-                    XmlElement lpf = CreateElement("file", catxml.DocumentElement["files"]);
+                    var lpf = CreateElement("file", catxml.DocumentElement["files"]);
                     lpf.SetAttribute("path", "livePreview.swf");
                     lpf.SetAttribute("mod", new FileInfo(tempDir + "\\livePreview.swf").LastWriteTimeUtc.ToFileTimeUtc().ToString());
                 }
@@ -521,7 +574,7 @@ namespace ExportSWC
                 File.Delete(file);
                 fzip.CreateZip(file, tempDir, false, ".*");
 
-                using (ZipOutputStream zo = new ZipOutputStream(File.Create(file)))
+                using (var zo = new ZipOutputStream(File.Create(file)))
                 {
                     zo.UseZip64 = UseZip64.Off;
                     zo.SetLevel(9);
@@ -529,10 +582,14 @@ namespace ExportSWC
                     SwcAdd(zo, tempDir + "\\library.swf");
                     SwcAdd(zo, tempDir + "\\icon.png");
                     if (livePreviewFile)
+                    {
                         SwcAdd(zo, tempDir + "\\livePreview.swf");
+                    }
+
                     zo.Finish();
                     zo.Close();
                 }
+
                 Directory.Delete(tempDir, true);
 
                 //TraceManager.AddAsync("Flash SWC ready: " + file);
@@ -543,62 +600,78 @@ namespace ExportSWC
         protected string BuildLivePreview()
         {
             if (FindClassPath(_swcProjectSettings.CS3_PreviewResource) == string.Empty)
+            {
                 return string.Empty;
+            }
 
             //string tproFile = TempFile(Path.GetTempPath().Trim('\\') + "\\flashdevelop_swf\\", ".as3proj");
             //string tswfFile = TempFile(Path.GetTempPath().Trim('\\') + "\\flashdevelop_swf\\", ".swf"); 
-            string tproFile = TempFile(ProjectPath.FullName, ".as3proj");
-            string tswfFile = TempFile(ProjectPath.FullName, ".swf");
+            var tproFile = TempFile(ProjectPath.FullName, ".as3proj");
+            var tswfFile = TempFile(ProjectPath.FullName, ".swf");
 
-            XmlDocument lpc = new XmlDocument();
+            var lpc = new XmlDocument();
             lpc.Load(_project.ProjectPath);
-            XmlNodeList opnl = lpc.DocumentElement["output"].ChildNodes;
+            var opnl = lpc.DocumentElement["output"].ChildNodes;
             foreach (XmlNode node in opnl)
+            {
                 if (node.Attributes[0].Name == "path")
+                {
                     node.Attributes[0].Value = Path.GetFileName(tswfFile);
+                }
+            }
 
             lpc.DocumentElement["compileTargets"].RemoveAll();
-            XmlElement el = CreateElement("compile", lpc.DocumentElement["compileTargets"]);
+            var el = CreateElement("compile", lpc.DocumentElement["compileTargets"]);
             el.SetAttribute("path", FindClassPath(_swcProjectSettings.CS3_PreviewResource));
 
             lpc.Save(tproFile);
 
-            string fdBuildDir = Path.Combine(PathHelper.ToolDir, "fdbuild");
-            string fdBuildPath = Path.Combine(fdBuildDir, "fdbuild.exe");
+            var fdBuildDir = Path.Combine(PathHelper.ToolDir, "fdbuild");
+            var fdBuildPath = Path.Combine(fdBuildDir, "fdbuild.exe");
 
-            string arguments = "\"" + tproFile + "\"";
+            var arguments = "\"" + tproFile + "\"";
 
             arguments += " -library \"" + PathHelper.LibraryDir + "\"";
             arguments += " -compiler \"" + FlexSdkBase + "\"";
 
-            ProcessRunner fdp = new ProcessRunner();
+            var fdp = new ProcessRunner();
             fdp.Run(fdBuildPath, arguments);
 
-            while (fdp.IsRunning) { Thread.Sleep(20); Application.DoEvents(); }
+            while (fdp.IsRunning)
+            {
+                Thread.Sleep(20);
+                Application.DoEvents();
+            }
 
             File.Delete(tproFile);
-            string tcon = _project.Directory.TrimEnd('\\') + "\\obj\\" + Path.GetFileNameWithoutExtension(tproFile) + "Config.xml";
+            var tcon = _project.Directory.TrimEnd('\\') + "\\obj\\" + Path.GetFileNameWithoutExtension(tproFile) + "Config.xml";
             if (File.Exists(tcon))
+            {
                 File.Delete(tcon);
+            }
+
             return tswfFile;
         }
 
         protected string FindClassPath(string className)
         {
-            foreach (string cpath_ in _project.Classpaths)
+            foreach (var cpath_ in _project.Classpaths)
             {
 
-                string cpath = cpath_.Contains(":") ? cpath_ : Path.Combine(_project.Directory, cpath_);
-                string[] files = Directory.GetFiles(cpath, "*.as", SearchOption.AllDirectories);
-                foreach (string file in files)
+                var cpath = cpath_.Contains(":") ? cpath_ : Path.Combine(_project.Directory, cpath_);
+                var files = Directory.GetFiles(cpath, "*.as", SearchOption.AllDirectories);
+                foreach (var file in files)
                 {
                     if (Path.GetFileNameWithoutExtension(file) == className)
+                    {
                         return (Path.GetDirectoryName(file).TrimEnd('\\')
                             + "\\" + className + ".as")
                             .Replace(_project.Directory.TrimEnd('\\')
                             + "\\", "");
+                    }
                 }
             }
+
             return string.Empty;
         }
 
@@ -606,14 +679,19 @@ namespace ExportSWC
         {
             path = path.TrimEnd('\\') + "\\";
             if (!Directory.Exists(path))
+            {
                 Directory.CreateDirectory(path);
-            string output = "";
-            byte[] ten = new byte[10];
+            }
+
+            var output = "";
+            var ten = new byte[10];
 
             output += new Random().Next(0, 10).ToString();
 
             while (File.Exists(path + output + ext))
+            {
                 output += new Random().Next(0, 10).ToString();
+            }
 
             File.Create(path + output + ext).Close();
             return path + output + ext;
@@ -621,11 +699,13 @@ namespace ExportSWC
 
         protected void SwcAdd(ZipOutputStream str, string file)
         {
-            ZipEntry entry = new ZipEntry(file.Substring(file.LastIndexOf('\\') + 1));
-            entry.CompressionMethod = CompressionMethod.Deflated;
-            byte[] buf = new byte[8192];
+            var entry = new ZipEntry(file.Substring(file.LastIndexOf('\\') + 1))
+            {
+                CompressionMethod = CompressionMethod.Deflated
+            };
+            var buf = new byte[8192];
             str.PutNextEntry(entry);
-            using (FileStream fstr = File.OpenRead(file))
+            using (var fstr = File.OpenRead(file))
             {
                 int c;
                 do
@@ -644,15 +724,16 @@ namespace ExportSWC
         {
             // expected from project manager: "Flash Player;9.0;path;path..."
             var platform = _project.MovieOptions.Platform;
-            string exPath = platform ?? "";
+            var exPath = platform ?? "";
             if (exPath.Length > 0)
             {
-                int p = exPath.IndexOf(';');
+                var p = exPath.IndexOf(';');
                 if (p >= 0)
                 {
                     platform = exPath.Substring(0, p);
                 }
             }
+
             return platform;
         }
 
@@ -683,31 +764,37 @@ namespace ExportSWC
                     throw new FileNotFoundException("Project or compc.exe not found", ProjectPath.FullName + "|" + compc.FullName);
                 }
                 // generate arguments based on config, additional configs, and additional user arguments
-                string cmdArgs = "-load-config+=\"" + confpath + "\"";
+                var cmdArgs = "-load-config+=\"" + confpath + "\"";
                 if (_project.CompilerOptions.LoadConfig != string.Empty)
+                {
                     cmdArgs += " -load-config+=\"" + _project.CompilerOptions.LoadConfig + "\"";
+                }
 
                 /* changed for new project manager core */
                 //if (Project.CompilerOptions.Additional != string.Empty)
                 //cmdArgs += " " + Project.CompilerOptions.Additional;
                 if (_project.CompilerOptions.Additional.Length > 0)
-                    foreach (string op in _project.CompilerOptions.Additional)
+                {
+                    foreach (var op in _project.CompilerOptions.Additional)
+                    {
                         cmdArgs += " " + op;
+                    }
+                }
 
                 _anyErrors = false;
 
                 // start the compc.exe process with arguments
-                ProcessRunner process = new PluginCore.Utilities.ProcessRunner();
+                var process = new PluginCore.Utilities.ProcessRunner();
                 process.Error += new LineOutputHandler(process_Error);
                 process.Output += new LineOutputHandler(process_Output);
                 //process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
                 process.RedirectInput = true;
                 process.Run(compc.FullName, cmdArgs);
 
-                PluginBase.MainForm.StatusLabel.Text = (process.IsRunning ? "Build started..." : "Unable to start build. Check output.");
+                PluginBase.MainForm.StatusLabel.Text = process.IsRunning ? "Build started..." : "Unable to start build. Check output.";
                 //TraceManager.Add((process.IsRunning ? "Running Process:" : "Unable to run Process:"));				
                 //TraceManager.Add("\"" + compc.FullName + "\" " + cmdArgs);
-                WriteLine((process.IsRunning ? "Running Process:" : "Unable to run Process:"));
+                WriteLine(process.IsRunning ? "Running Process:" : "Unable to run Process:");
                 WriteLine("\"" + compc.FullName + "\" " + cmdArgs);
 
                 while (process.IsRunning)
@@ -716,8 +803,8 @@ namespace ExportSWC
                     Application.DoEvents();
                 }
 
-                AS3Project project = _project;
-                bool checkForIllegalCrossThreadCalls = Control.CheckForIllegalCrossThreadCalls;
+                var project = _project;
+                var checkForIllegalCrossThreadCalls = Control.CheckForIllegalCrossThreadCalls;
                 Control.CheckForIllegalCrossThreadCalls = false;
 
                 // Include AsDoc if FlexSdkVersion >= 4
@@ -739,6 +826,7 @@ namespace ExportSWC
                     //TraceManager.AddAsync(string.Format("Build failed ({0}).\n", process.HostedProcess.ExitCode), 2);
                     WriteLine(string.Format(string.Format("Build failed ({0}).\n", process.HostedProcess.ExitCode)), TraceMessageType.Error);
                 }
+
                 Control.CheckForIllegalCrossThreadCalls = checkForIllegalCrossThreadCalls;
 
                 return (_anyErrors == false) & (process.HostedProcess.ExitCode == 0);
@@ -758,19 +846,25 @@ namespace ExportSWC
         protected void PreBuild()
         {
             //Clear Outputpanel
-            NotifyEvent ne = new NotifyEvent(EventType.ProcessStart);
+            var ne = new NotifyEvent(EventType.ProcessStart);
             EventManager.DispatchEvent(this, ne);
 
             CreateCompcConfig(CompcConfigPath_Flex, CompcBinPath_Flex, true, _swcProjectSettings.Flex_IgnoreClasses);
             if (_swcProjectSettings.FlexIncludeASI)
+            {
                 PreBuild_Asi();
+            }
+
             if (_swcProjectSettings.MakeCS3)
             {
                 CreateCompcConfig(CompcConfigPath_Flash, CompcBinPath_Flash, false, _swcProjectSettings.CS3_IgnoreClasses);
                 if (_swcProjectSettings.MakeMXI)
                 {
                     if (_swcProjectSettings.MXPIncludeASI && !_swcProjectSettings.FlexIncludeASI)
+                    {
                         PreBuild_Asi();
+                    }
+
                     PreBuild_Mxi();
                 }
             }
@@ -778,41 +872,48 @@ namespace ExportSWC
 
         protected void PreBuild_Asi()
         {
-            string outdir = ASIDir;
+            var outdir = ASIDir;
             if (!Directory.Exists(outdir))
-                Directory.CreateDirectory(outdir);
-            List<string> asfiles = new List<string>();
-
-            foreach (string path in _project.Classpaths)
             {
-                string rpath = path.Contains(":")
+                Directory.CreateDirectory(outdir);
+            }
+
+            var asfiles = new List<string>();
+
+            foreach (var path in _project.Classpaths)
+            {
+                var rpath = path.Contains(":")
                     ? path.Trim('\\') + "\\"
                     : (_project.Directory + "\\" + path.Trim('\\') + "\\").Replace("\\\\", "\\");
                 asfiles.AddRange(Directory.GetFiles(rpath, "*.as", SearchOption.AllDirectories));
             }
 
-            foreach (string infile in asfiles)
+            foreach (var infile in asfiles)
+            {
                 MakeIntrinsic(infile, outdir);
+            }
         }
 
         protected void MakeIntrinsic(string infile, string outdir)
         {
-            FileModel aFile = ASFileParser.ParseFile(new FileModel(infile)
+            var aFile = ASFileParser.ParseFile(new FileModel(infile)
             {
                 Context = ASContext.Context
             });
             if (aFile.Version == 0)
+            {
                 return;
-            string code = aFile.GenerateIntrinsic(false);
+            }
+
+            var code = aFile.GenerateIntrinsic(false);
 
             try
             {
-                string dest = outdir.Trim('\\') + "\\";
+                var dest = outdir.Trim('\\') + "\\";
                 dest += aFile.Package.Length < 1
                     ? aFile.Classes[0].Name
                     : aFile.Package + "." + aFile.Classes[0].Name;
                 dest += ".asi";
-
 
                 File.WriteAllText(dest, code, Encoding.UTF8);
             }
@@ -824,8 +925,8 @@ namespace ExportSWC
 
         protected void PreBuild_Mxi()
         {
-            string outfile = MXIPath;
-            XmlDocument doc = new XmlDocument();
+            var outfile = MXIPath;
+            var doc = new XmlDocument();
             doc.LoadXml("<?xml version=\"1.0\" encoding=\"UTF-8\" ?><macromedia-extension />");
             doc.DocumentElement.SetAttribute("name", _swcProjectSettings.CS3_ComponentName);
             _swcProjectSettings.IncrementVersion(0, 0, 1);
@@ -836,11 +937,11 @@ namespace ExportSWC
             CreateElement("author", doc.DocumentElement).SetAttribute("name", _swcProjectSettings.MXIAuthor);
             CreateElement("description", doc.DocumentElement).InnerXml = "<![CDATA[ " + _swcProjectSettings.MXIDescription + " ]]>";
             CreateElement("ui-access", doc.DocumentElement).InnerXml = "<![CDATA[ " + _swcProjectSettings.MXIUIAccessText + " ]]>";
-            XmlElement pro = CreateElement("product", CreateElement("products", doc.DocumentElement));
+            var pro = CreateElement("product", CreateElement("products", doc.DocumentElement));
             pro.SetAttribute("name", "Flash");
             pro.SetAttribute("version", "9");
             pro.SetAttribute("primary", "true");
-            XmlElement fil = CreateElement("file", CreateElement("files", doc.DocumentElement));
+            var fil = CreateElement("file", CreateElement("files", doc.DocumentElement));
             fil.SetAttribute("name", Path.GetFileName(CompcBinPath_Flash));
             fil.SetAttribute("destination", "$flash/Components/" + _swcProjectSettings.CS3_ComponentGroup);
 
@@ -853,7 +954,7 @@ namespace ExportSWC
             WriteLine("Prebuilding config " + confout + "...");
 
             // build the config file
-            XmlDocument config = new XmlDocument();
+            var config = new XmlDocument();
 
             config.LoadXml("<?xml version=\"1.0\"?><flex-config/>");
 
@@ -875,25 +976,31 @@ namespace ExportSWC
 
             // locale
             if (_project.CompilerOptions.Locale != string.Empty)
+            {
                 CreateElement("locale", config.DocumentElement, _project.CompilerOptions.Locale);
+            }
 
             // runtime-shared-libraries
             if (_project.CompilerOptions.RSLPaths.Length > 0)
             {
-                XmlElement rslUrls = CreateElement("runtime-shared-libraries", config.DocumentElement, null);
-                foreach (string rslUrl in _project.CompilerOptions.RSLPaths)
+                var rslUrls = CreateElement("runtime-shared-libraries", config.DocumentElement, null);
+                foreach (var rslUrl in _project.CompilerOptions.RSLPaths)
+                {
                     CreateElement("rsl-url", rslUrls, rslUrl);
+                }
             }
 
             // benchmark
             CreateElement("benchmark", config.DocumentElement, _project.CompilerOptions.Benchmark.ToString().ToLower());
 
             // compiler options...
-            XmlElement compiler = CreateElement("compiler", config.DocumentElement, null);
+            var compiler = CreateElement("compiler", config.DocumentElement, null);
 
             // compute-digest
             if (!rsl)
+            {
                 CreateElement("compute-digest", config.DocumentElement, "false");
+            }
 
             // accessible
             CreateElement("accessible", compiler, _project.CompilerOptions.Accessible.ToString().ToLower());
@@ -926,10 +1033,10 @@ namespace ExportSWC
             CreateElement("verbose-stacktraces", compiler, _project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
 
             // source-path & include-classes
-            XmlElement sourcePath = CreateElement("source-path", compiler, null);
-            foreach (string classPath in _project.Classpaths)
+            var sourcePath = CreateElement("source-path", compiler, null);
+            foreach (var classPath in _project.Classpaths)
             {
-                string absClassPath = GetProjectItemFullPath(classPath).ToLower();
+                var absClassPath = GetProjectItemFullPath(classPath).ToLower();
                 CreateElement("path-element", sourcePath, absClassPath);
             }
 
@@ -937,10 +1044,10 @@ namespace ExportSWC
             // libarary-path			
             if (_project.CompilerOptions.LibraryPaths.Length > 0)
             {
-                XmlElement includeLibraries = CreateElement("library-path", compiler, null);
-                foreach (string libPath in _project.CompilerOptions.LibraryPaths)
+                var includeLibraries = CreateElement("library-path", compiler, null);
+                foreach (var libPath in _project.CompilerOptions.LibraryPaths)
                 {
-                    string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+                    var absLibPath = GetProjectItemFullPath(libPath).ToLower();
                     CreateElement("path-element", includeLibraries, absLibPath);
                 }
             }
@@ -948,38 +1055,40 @@ namespace ExportSWC
             // include-libraries
             if (_project.CompilerOptions.IncludeLibraries.Length > 0)
             {
-                XmlElement includeLibraries = CreateElement("include-libraries", compiler, null);
-                foreach (string libPath in _project.CompilerOptions.IncludeLibraries)
+                var includeLibraries = CreateElement("include-libraries", compiler, null);
+                foreach (var libPath in _project.CompilerOptions.IncludeLibraries)
                 {
-                    string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+                    var absLibPath = GetProjectItemFullPath(libPath).ToLower();
                     CreateElement("library", includeLibraries, absLibPath);
                 }
             }
 
             // include-classes
-            List<string> origClassExclusions = classExclusions;
+            var origClassExclusions = classExclusions;
             classExclusions = new List<string>();
-            for (int i = 0; i < origClassExclusions.Count; i++)
-                classExclusions.Add(GetProjectItemFullPath(origClassExclusions[i]).ToLower());
-
-            XmlElement includeClasses = CreateElement("include-classes", config.DocumentElement, null);
-            foreach (string classPath in _project.Classpaths)
+            for (var i = 0; i < origClassExclusions.Count; i++)
             {
-                string absClassPath = GetProjectItemFullPath(classPath).ToLower();
+                classExclusions.Add(GetProjectItemFullPath(origClassExclusions[i]).ToLower());
+            }
+
+            var includeClasses = CreateElement("include-classes", config.DocumentElement, null);
+            foreach (var classPath in _project.Classpaths)
+            {
+                var absClassPath = GetProjectItemFullPath(classPath).ToLower();
                 IncludeClassesIn(includeClasses, absClassPath, string.Empty, classExclusions);
             }
 
             // external-library-path 
             if (_project.CompilerOptions.ExternalLibraryPaths != null && _project.CompilerOptions.ExternalLibraryPaths.Length > 0)
             {
-                XmlElement externalLibs = CreateElement("external-library-path", compiler, null);
-                XmlAttribute attr = externalLibs.OwnerDocument.CreateAttribute("append");
+                var externalLibs = CreateElement("external-library-path", compiler, null);
+                var attr = externalLibs.OwnerDocument.CreateAttribute("append");
                 attr.InnerXml = "true";
                 externalLibs.Attributes.Append(attr);
 
-                foreach (string libPath in _project.CompilerOptions.ExternalLibraryPaths)
+                foreach (var libPath in _project.CompilerOptions.ExternalLibraryPaths)
                 {
-                    string absLibPath = GetProjectItemFullPath(libPath).ToLower();
+                    var absLibPath = GetProjectItemFullPath(libPath).ToLower();
                     CreateElement("path-element", externalLibs, absLibPath);
                 }
             }
@@ -995,9 +1104,9 @@ namespace ExportSWC
         protected void IncludeClassesIn(XmlElement includeClasses, string sourcePath, string parentPath, List<string> classExclusions)
         {
             // take the current folder
-            DirectoryInfo directory = new DirectoryInfo(sourcePath);
+            var directory = new DirectoryInfo(sourcePath);
             // add every AS class to the manifest
-            foreach (FileInfo file in directory.GetFiles())
+            foreach (var file in directory.GetFiles())
             {
                 if (file.Extension == ".as" ||
                     file.Extension == ".mxml")
@@ -1010,62 +1119,38 @@ namespace ExportSWC
             }
 
             // process sub folders
-            foreach (DirectoryInfo folder in directory.GetDirectories())
+            foreach (var folder in directory.GetDirectories())
+            {
                 IncludeClassesIn(includeClasses, folder.FullName, parentPath + folder.Name + ".", classExclusions);
+            }
         }
         #endregion
 
-
         #region properties
-        protected string CompcConfigPath_Flex
-        {
-            get { return LibMakerDir + _project.Name + ".flex.compc.xml"; }
-        }
+        protected string CompcConfigPath_Flex => LibMakerDir + _project.Name + ".flex.compc.xml";
 
         protected string CompcBinPath_Flex
-        {
             //get { return LibMakerDir + Project.Name + ".flex.swc"; }
-            get { return Path.Combine(ProjectPath.FullName, _swcProjectSettings.FlexBinPath); }
-        }
+            => Path.Combine(ProjectPath.FullName, _swcProjectSettings.FlexBinPath);
 
-        protected string CompcConfigPath_Flash
-        {
-            get { return LibMakerDir + _project.Name + ".flash.compc.xml"; }
-        }
+        protected string CompcConfigPath_Flash => LibMakerDir + _project.Name + ".flash.compc.xml";
 
         protected string CompcBinPath_Flash
-        {
             //get { return LibMakerDir + Project.Name + ".flash.swc"; }
-            get { return Path.Combine(ProjectPath.FullName, _swcProjectSettings.FlashBinPath); }
-        }
+            => Path.Combine(ProjectPath.FullName, _swcProjectSettings.FlashBinPath);
 
-        protected string ASIDir
-        {
-            get { return ProjectPath.FullName + "\\asi\\"; }
-        }
+        protected string ASIDir => ProjectPath.FullName + "\\asi\\";
 
-        protected string MXIPath
-        {
-            get { return LibMakerDir + _project.Name + ".mxi"; }
-        }
+        protected string MXIPath => LibMakerDir + _project.Name + ".mxi";
 
-        protected string SWCProjectSettingsPath
-        {
-            get { return ProjectPath.FullName + "\\" + _project.Name + ".lxml"; }
-            //get { return ProjectPath.FullName + "\\SWCSettings.lxml"; }
-        }
+        protected string SWCProjectSettingsPath => ProjectPath.FullName + "\\" + _project.Name + ".lxml";
 
         /// <summary>
         /// The Flex SDK base path.
         /// </summary>
-        protected string FlexSdkBase
-        {
-            get
-            {
+        protected string FlexSdkBase =>
                 // Patch: Use custom SDK path (if available)
-                return BuildActions.GetCompilerPath(_project);
-            }
-        }
+                BuildActions.GetCompilerPath(_project);
 
         /// <summary>
         /// The Flex SDK Version.
@@ -1074,16 +1159,16 @@ namespace ExportSWC
         {
             get
             {
-                XmlDocument doc = new XmlDocument();
+                var doc = new XmlDocument();
                 doc.Load(Path.Combine(FlexSdkBase, "flex-sdk-description.xml"));
 
-                XmlNode versionNode = doc.SelectSingleNode("flex-sdk-description/version");
-                XmlNode buildNode = doc.SelectSingleNode("flex-sdk-description/build");
+                var versionNode = doc.SelectSingleNode("flex-sdk-description/version");
+                var buildNode = doc.SelectSingleNode("flex-sdk-description/build");
 
-                string[] versionParts = versionNode.InnerText.Split(new char[] { '.' },
+                var versionParts = versionNode.InnerText.Split(new char[] { '.' },
                                                                     StringSplitOptions.RemoveEmptyEntries);
 
-                Version version = new Version(int.Parse(versionParts[0]),
+                var version = new Version(int.Parse(versionParts[0]),
                                               int.Parse(versionParts[1]),
                                               int.Parse(versionParts[2]),
                                               int.Parse(buildNode.InnerText));
@@ -1101,30 +1186,31 @@ namespace ExportSWC
             {
                 // Patch: Use custom SDK path (if available)
                 if (FlexSdkVersion.Major >= 4)
+                {
                     return true;
+                }
+
                 return false;
             }
         }
 
-        protected DirectoryInfo ProjectPath
-        {
-            get { return new DirectoryInfo(_project.Directory); }
-        }
+        protected DirectoryInfo ProjectPath => new DirectoryInfo(_project.Directory);
 
         protected string LibMakerDir
         {
             get
             {
-                string p = ProjectPath.FullName + "\\obj\\";
+                var p = ProjectPath.FullName + "\\obj\\";
                 if (!Directory.Exists(p))
+                {
                     Directory.CreateDirectory(p);
+                }
+
                 return p;
             }
         }
 
         #endregion
-
-
 
         #region Helper Functions
         protected string GetRelativePath(string rootPath, string targetPath)
@@ -1133,14 +1219,16 @@ namespace ExportSWC
             rootPath = GetProjectItemFullPath(rootPath).ToLower();
             targetPath = GetProjectItemFullPath(targetPath).ToLower();
 
-            string[] strsRoot = rootPath.Split(new char[] { '\\' });
-            string[] strsTarget = targetPath.Split(new char[] { '\\' });
+            var strsRoot = rootPath.Split(new char[] { '\\' });
+            var strsTarget = targetPath.Split(new char[] { '\\' });
 
             for (i = strsRoot.Length; i > 0; i--)
             {
-                string tmpPath = "";
+                var tmpPath = "";
                 for (j = 0; j < i; j++)
+                {
                     tmpPath += strsRoot[j] + "\\";
+                }
 
                 tmpPath = tmpPath.Substring(0, tmpPath.Length - 1);
 
@@ -1152,7 +1240,9 @@ namespace ExportSWC
                     for (k = i, count = 0; k < strsRoot.Length; k++, count++)
                     {
                         if (tmpPath == rootPath)
+                        {
                             break;
+                        }
 
                         tmpPath += strsRoot[k];
                     }
@@ -1164,7 +1254,10 @@ namespace ExportSWC
                     }
 
                     for (k = i; k < strsTarget.Length; k++)
+                    {
                         tmpPath += strsTarget[k] + '\\';
+                    }
+
                     tmpPath = tmpPath.Substring(0, tmpPath.Length - 1);
 
                     return tmpPath;
@@ -1172,7 +1265,6 @@ namespace ExportSWC
             }
 
             return null;
-
 
         }
 
@@ -1183,9 +1275,12 @@ namespace ExportSWC
 
         protected XmlElement CreateElement(string name, XmlElement parent, string innerText)
         {
-            XmlElement element = parent.OwnerDocument.CreateElement(name, parent.OwnerDocument.DocumentElement.NamespaceURI);
+            var element = parent.OwnerDocument.CreateElement(name, parent.OwnerDocument.DocumentElement.NamespaceURI);
             if (innerText != null && innerText != string.Empty)
+            {
                 element.InnerText = innerText;
+            }
+
             parent.AppendChild(element);
 
             return element;
@@ -1193,27 +1288,31 @@ namespace ExportSWC
 
         protected bool IsFileIgnored(string file, List<string> classExclusions)
         {
-            string filePath = GetProjectItemFullPath(file);
+            var filePath = GetProjectItemFullPath(file);
 
             if (classExclusions.Contains(filePath.ToLower()))
+            {
                 return true;
+            }
+
             return false;
         }
 
         protected string GetProjectItemFullPath(string path)
         {
             if (Path.IsPathRooted(path))
+            {
                 return path;
+            }
 
             return Path.GetFullPath(ProjectPath.FullName + "\\" + path);
         }
 
         protected string GetTargetVersionString()
         {
-            return ((AS3Project)_project).MovieOptions.Version;
+            return _project.MovieOptions.Version;
         }
         #endregion
-
 
         protected void process_Output(object sender, string line)
         {
@@ -1229,8 +1328,8 @@ namespace ExportSWC
 
         private FileInfo GetExeOrBatPath(string filepath)
         {
-            FileInfo fileInfo = new FileInfo(filepath);
-            if ((!fileInfo.Exists))
+            var fileInfo = new FileInfo(filepath);
+            if (!fileInfo.Exists)
             {
                 var batFilepath = Path.ChangeExtension(filepath, ".bat");
                 fileInfo = new FileInfo(batFilepath);

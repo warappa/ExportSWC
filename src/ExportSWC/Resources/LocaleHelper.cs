@@ -1,12 +1,11 @@
-using System;
-using System.Resources;
-using System.Reflection;
-using PluginCore.Localization;
 using System.Drawing;
+using System.Reflection;
+using System.Resources;
+using PluginCore.Localization;
 
 namespace ExportSWC.Resources
 {
-    class LocaleHelper
+    internal class LocaleHelper
     {
         private static ResourceManager resources = null;
 
@@ -15,7 +14,7 @@ namespace ExportSWC.Resources
         /// </summary>
         public static void Initialize(LocaleVersion locale)
         {
-            string path = "ExportSWC.Resources." + locale.ToString();
+            var path = "ExportSWC.Resources." + locale.ToString();
             resources = new ResourceManager(path, Assembly.GetExecutingAssembly());
         }
 
@@ -27,10 +26,9 @@ namespace ExportSWC.Resources
             return resources.GetString(identifier);
         }
 
-		public static Image GetImage(string identifier) {
-			return (Image)resources.GetObject(identifier);
-		}
-
+        public static Image GetImage(string identifier)
+        {
+            return (Image)resources.GetObject(identifier);
+        }
     }
-
 }
