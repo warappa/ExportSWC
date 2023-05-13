@@ -13,9 +13,14 @@ namespace ExportSWC
         {
             _button.Enabled = false;
 
-            _compiler.Build(CurrentProject, CurrentSwcProject, _tracer);
-
-            _button.Enabled = true;
+            try
+            {
+                _compiler.Build(CurrentProject, CurrentSwcProject, _tracer);
+            }
+            finally
+            {
+                _button.Enabled = true;
+            }
         }
 
         protected void PreBuildClick(object sender, EventArgs e)

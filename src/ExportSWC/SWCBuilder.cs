@@ -17,19 +17,9 @@ namespace ExportSWC
         private AS3Project _project = null;
         private ITraceable _tracer = null;
 
-        private string CompcConfigPath_Flex => LibMakerDir + _project.Name + ".flex.compc.xml";
+        private DirectoryInfo ProjectPath => new DirectoryInfo(_project.Directory);
 
         private string CompcBinPath_Flex => Path.Combine(ProjectPath.FullName, _swcProjectSettings.FlexBinPath);
-
-        private string CompcConfigPath_Flash => LibMakerDir + _project.Name + ".flash.compc.xml";
-
-        private string CompcBinPath_Flash => Path.Combine(ProjectPath.FullName, _swcProjectSettings.FlashBinPath);
-
-        private string ASIDir => ProjectPath.FullName + "\\asi\\";
-
-        private string MXIPath => LibMakerDir + _project.Name + ".mxi";
-
-        private string SWCProjectSettingsPath => ProjectPath.FullName + "\\" + _project.Name + ".lxml";
 
         /// <summary>
         /// The Flex SDK base path.
@@ -77,8 +67,6 @@ namespace ExportSWC
                 return false;
             }
         }
-
-        private DirectoryInfo ProjectPath => new DirectoryInfo(_project.Directory);
 
         private string LibMakerDir
         {

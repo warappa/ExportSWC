@@ -13,9 +13,80 @@ namespace ExportSWC
     {
         private bool IncludeAsDoc()
         {
-            var arguments = "";
+            var tmpPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tmpPath);
 
-            var classExclusions = _swcProjectSettings.FlexIgnoreClasses;
+            var arguments = BuildAsDocArguments();
+
+            WriteLine("Building AsDoc");
+            WriteLine("AsDoc temp output: " + tmpPath);
+
+            arguments = $@"-lenient=true -keep-xml=true -skip-xsl=true -output ""{tmpPath}"" {arguments}";
+            //arguments += " -load-config=\"" + Path.Combine(ProjectPath.FullName, "obj/" + _project.Name + ".flex.compc.xml") + "\"";
+
+            var asdoc = GetExeOrBatPath(Path.Combine(FlexSdkBase, @"bin\asdoc.exe"));
+            if (asdoc is null)
+            {
+                throw new FileNotFoundException("asdoc not found", Path.Combine(FlexSdkBase, @"bin\asdoc.exe"));
+            }
+
+            WriteLine($"Start AsDoc: {asdoc.FullName}\n{arguments}");
+            
+            var success = RunAsDoc(arguments, asdoc, out var exitCode);
+
+            WriteLine($"AsDoc complete ({exitCode})", success ? TraceMessageType.Verbose : TraceMessageType.Error);
+
+            if (!success)
+            {
+                return false;
+            }
+
+            WriteLine("AsDoc created successfully, including in SWC...");
+
+            try
+            {
+                MergeAsDocIntoSWC(tmpPath);
+
+                WriteLine($"AsDoc integration complete ({exitCode})",
+                    success ? TraceMessageType.Verbose : TraceMessageType.Error);
+            }
+            catch (Exception exc)
+            {
+                WriteLine($"Integration error {exc.Message}", TraceMessageType.Error);
+            }
+
+            // delete temporary directory
+            Directory.Delete(tmpPath, true);
+
+            return true;
+        }
+
+        private bool RunAsDoc(string arguments, FileInfo asdoc, out int exitCode)
+        {
+            var process = new ProcessRunner();
+            process.Error += new LineOutputHandler(ProcessError);
+            process.Output += new LineOutputHandler(ProcessOutput);
+            //process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
+            process.RedirectInput = true;
+
+            process.Run(asdoc.FullName, arguments);
+
+            while (process.IsRunning)
+            {
+                Thread.Sleep(5);
+                Application.DoEvents();
+            }
+
+            exitCode = process.HostedProcess.ExitCode;
+
+            var success = exitCode == 0;
+            
+            return success;
+        }
+
+        private string BuildAsDocArguments()
+        {
+            var arguments = "";
 
             // source-path	
             arguments += " -source-path ";
@@ -23,7 +94,7 @@ namespace ExportSWC
             {
                 var absClassPath = GetProjectItemFullPath(classPath).ToLower();
 
-                arguments += "\"" + absClassPath + "\" ";
+                arguments += $@"""{absClassPath}"" ";
             }
 
             // general options...
@@ -34,7 +105,7 @@ namespace ExportSWC
                 foreach (var libPath in _project.CompilerOptions.LibraryPaths)
                 {
                     var absLibPath = GetProjectItemFullPath(libPath).ToLower();
-                    arguments += "\"" + absLibPath + "\" ";
+                    arguments += $@"""{absLibPath}"" ";
                 }
             }
 
@@ -49,7 +120,7 @@ namespace ExportSWC
                 foreach (var libPath in _project.CompilerOptions.IncludeLibraries)
                 {
                     var absLibPath = GetProjectItemFullPath(libPath).ToLower();
-                    arguments += "\"" + absLibPath + "\" ";
+                    arguments += $@"""{absLibPath}"" ";
                 }
             }
 
@@ -65,10 +136,11 @@ namespace ExportSWC
                 foreach (var libPath in _project.CompilerOptions.ExternalLibraryPaths)
                 {
                     var absLibPath = GetProjectItemFullPath(libPath).ToLower();
-                    arguments += "\"" + absLibPath + "\" ";
+                    arguments += $@"""{absLibPath}"" ";
                 }
             }
 
+            var classExclusions = _swcProjectSettings.FlexIgnoreClasses;
             if (classExclusions.Count > 0)
             {
                 arguments += " -exclude-classes ";
@@ -99,75 +171,23 @@ namespace ExportSWC
             else
             {
                 // the target-player
-                arguments += "-target-player=" + GetTargetVersionString();
+                arguments += $"-target-player={GetTargetVersionString()}";
             }
 
-            var tmpPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tmpPath);
+            return arguments;
+        }
 
-            WriteLine("Building AsDoc");
-            WriteLine("AsDoc temp output: " + tmpPath);
-
-            arguments = "-lenient=true -keep-xml=true -skip-xsl=true -output \"" + tmpPath + "\" " + arguments;
-            //arguments += " -load-config=\"" + Path.Combine(ProjectPath.FullName, "obj/" + _project.Name + ".flex.compc.xml") + "\"";
-
-            var asdoc = GetExeOrBatPath(Path.Combine(FlexSdkBase, @"bin\asdoc.exe"));
-            if (asdoc is null)
+        private void MergeAsDocIntoSWC(string tmpPath)
+        {
+            using var fsZip = new FileStream(CompcBinPath_Flex, FileMode.Open, FileAccess.ReadWrite);
+            using (var zipFile = new ZipFile(fsZip))
             {
-                throw new FileNotFoundException("asdoc not found", Path.Combine(FlexSdkBase, @"bin\asdoc.exe"));
+                zipFile.BeginUpdate();
+
+                AddContentsOfDirectory(zipFile, Path.Combine(tmpPath, "tempdita"), Path.Combine(tmpPath, "tempdita"), "docs");
+
+                zipFile.CommitUpdate();
             }
-
-            WriteLine("Start AsDoc: " + asdoc.FullName + "\n" + arguments);
-
-            var process = new ProcessRunner();
-            process.Error += new LineOutputHandler(ProcessError);
-            process.Output += new LineOutputHandler(ProcessOutput);
-            //process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
-            process.RedirectInput = true;
-
-            process.Run(asdoc.FullName, arguments);
-
-            while (process.IsRunning)
-            {
-                Thread.Sleep(5);
-                Application.DoEvents();
-            }
-
-            var success = process.HostedProcess.ExitCode == 0;
-            WriteLine("AsDoc complete (" + process.HostedProcess.ExitCode + ")",
-                success ? TraceMessageType.Verbose : TraceMessageType.Error);
-
-            if (process.HostedProcess.ExitCode != 0) // no errors
-            {
-                return false;
-            }
-
-            WriteLine("AsDoc created successfully, including in SWC...");
-
-            try
-            {
-                using var fsZip = new FileStream(CompcBinPath_Flex, FileMode.Open, FileAccess.ReadWrite);
-                using (var zipFile = new ZipFile(fsZip))
-                {
-                    zipFile.BeginUpdate();
-
-                    AddContentsOfDirectory(zipFile, Path.Combine(tmpPath, "tempdita"), Path.Combine(tmpPath, "tempdita"), "docs");
-
-                    zipFile.CommitUpdate();
-                }
-
-                WriteLine("AsDoc integration complete (" + process.HostedProcess.ExitCode + ")",
-                    success ? TraceMessageType.Verbose : TraceMessageType.Error);
-            }
-            catch (Exception exc)
-            {
-                WriteLine("Integration error " + exc.Message, TraceMessageType.Error);
-            }
-
-            // delete temporary directory
-            Directory.Delete(tmpPath, true);
-
-            return true;
         }
 
         private void AddContentsOfDirectory(ZipFile zipFile, string path, string basePath, string prefix)

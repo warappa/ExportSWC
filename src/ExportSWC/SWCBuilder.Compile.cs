@@ -24,7 +24,12 @@ namespace ExportSWC
 {
     public partial class SWCBuilder
     {
-        #region Compiling
+        private string CompcConfigPath_Flex => LibMakerDir + _project.Name + ".flex.compc.xml";
+        private string CompcConfigPath_Flash => LibMakerDir + _project.Name + ".flash.compc.xml";
+        private string CompcBinPath_Flash => Path.Combine(ProjectPath.FullName, _swcProjectSettings.FlashBinPath);
+        private string MXIPath => LibMakerDir + _project.Name + ".mxi";
+        private string ASIDir => ProjectPath.FullName + "\\asi\\";
+        private string SWCProjectSettingsPath => ProjectPath.FullName + "\\" + _project.Name + ".lxml";
 
         /// <summary>
         /// Main method for plugin - Export SWC using compc.exe
@@ -63,8 +68,6 @@ namespace ExportSWC
                 _running = false;
             }
         }
-
-        
 
         public void Compile(AS3Project project, SWCProject swcProjectSettings)
         {
@@ -148,7 +151,8 @@ namespace ExportSWC
                 }
             }
 
-            if (buildSuccess || _project.AlwaysRunPostBuild)
+            if (buildSuccess ||
+                _project.AlwaysRunPostBuild)
             {
                 RunPostBuildEvent();
             }
@@ -181,7 +185,8 @@ namespace ExportSWC
 
         protected void RunPostBuildEvent()
         {
-            if (_project.PostBuildEvent.Trim().Length == 0)
+            var hasBuildEvent = _project.PostBuildEvent.Trim().Length >= 0;
+            if (hasBuildEvent)
             {
                 return;
             }
@@ -913,6 +918,5 @@ namespace ExportSWC
                 IncludeClassesIn(includeClasses, folder.FullName, parentPath + folder.Name + ".", classExclusions);
             }
         }
-        #endregion
     }
 }
