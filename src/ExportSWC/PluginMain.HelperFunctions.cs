@@ -91,6 +91,7 @@ namespace ExportSWC
 
             return swcProject;
         }
+
         private string GetSwcProjectSettingsPath(AS3Project as3Project)
         {
             return new DirectoryInfo(as3Project.Directory).FullName + "\\" + as3Project.Name + ".lxml";

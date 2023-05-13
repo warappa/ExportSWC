@@ -37,8 +37,8 @@ namespace ExportSWC
         /* SWC project */
         private SWCProject CurrentSwcProject;
 
-        protected SWCBuilder _compiler = new SWCBuilder();
-        protected ITraceable _tracer = new TraceManagerTracer();
+        protected ITraceable _tracer;
+        protected SWCBuilder _compiler;
 
         /// <summary>
         /// The current AS3 project.
@@ -46,6 +46,12 @@ namespace ExportSWC
         private AS3Project CurrentProject => PluginBase.CurrentProject as AS3Project;
 
         private DirectoryInfo CurrentProjectPath => new DirectoryInfo(CurrentProject.Directory);
+
+        public PluginMain()
+        {
+            _tracer = new TraceManagerTracer();
+            _compiler = new SWCBuilder(_tracer);
+    }
 
         /// <summary>
         /// Name of the plugin

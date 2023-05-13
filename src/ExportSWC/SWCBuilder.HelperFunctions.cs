@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Xml;
+﻿using System.Xml;
 using ExportSWC.Tracing;
+using ProjectManager.Projects;
 
 namespace ExportSWC
 {
@@ -23,49 +22,6 @@ namespace ExportSWC
             parent.AppendChild(element);
 
             return element;
-        }
-
-        private bool IsFileIgnored(string file, List<string> classExclusions)
-        {
-            var filePath = GetProjectItemFullPath(file);
-
-            if (classExclusions.Contains(filePath.ToLower()))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private string GetProjectItemFullPath(string path)
-        {
-            if (Path.IsPathRooted(path))
-            {
-                return path;
-            }
-
-            return Path.GetFullPath(ProjectPath.FullName + "\\" + path);
-        }
-
-        private string GetTargetVersionString()
-        {
-            return _project.MovieOptions.Version;
-        }
-
-        private FileInfo GetExeOrBatPath(string filepath)
-        {
-            var fileInfo = new FileInfo(filepath);
-            if (!fileInfo.Exists)
-            {
-                var batFilepath = Path.ChangeExtension(filepath, ".bat");
-                fileInfo = new FileInfo(batFilepath);
-                if ((!ProjectPath.Exists) | (!fileInfo.Exists))
-                {
-                    throw new FileNotFoundException($"{filepath} not found", fileInfo.FullName);
-                }
-            }
-
-            return fileInfo;
         }
 
         private void WriteLine(string msg)
