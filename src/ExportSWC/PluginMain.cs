@@ -166,13 +166,13 @@ namespace ExportSWC
 							FilesTreeView = null;
 						}
 					}
-					if (sender.GetType() == typeof(ProjectTreeView))
+					if (sender?.GetType() == typeof(ProjectTreeView))
 					{
 						ProjectTreeView tree = (ProjectTreeView)sender;
 						if (FilesTreeView == null)
 							FilesTreeView = tree.NodeMap.Values;
 						if (cmd == "ProjectManager.TreeSelectionChanged" && _button.Enabled)
-							InjectContextMenuItems(tree, (ArrayList)(e as DataEvent).Data);
+							InjectContextMenuItems(tree);
 					}
 					//If the current project isn't a AS3Project: don't try to repaint the treenodes (->exception!)
 					if (CurrentProject != null)
@@ -252,7 +252,7 @@ namespace ExportSWC
 		
 
 		#region context menu
-		private void InjectContextMenuItems(ProjectTreeView tree, ArrayList te)
+		private void InjectContextMenuItems(ProjectTreeView tree)
 		{
 			// we're only interested in single items
 			if (tree.SelectedNodes.Count == 1)
@@ -316,7 +316,6 @@ namespace ExportSWC
 					tree.ContextMenuStrip.Items.Add(openSwcSettings);
 				}
 			}
-			//tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
 		}
 
 		private SWCProject GetSwcProjectSettings(AS3Project as3Project)
