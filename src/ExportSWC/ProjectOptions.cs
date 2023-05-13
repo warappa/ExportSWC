@@ -31,12 +31,12 @@ namespace ExportSWC
             cb_intrinsic_cs3.Checked = swcp.MXPIncludeASI;
             cb_createmxi.Checked = swcp.MakeMXI;
             cb_runaem.Checked = swcp.LaunchAEM;
-            tb_compname.Text = swcp.CS3_ComponentName;
-            tb_compgroup.Text = swcp.CS3_ComponentGroup;
-            tb_tooltip.Text = swcp.CS3_ComponentToolTip;
-            tb_icon.Text = swcp.CS3_ComponentIconFile;
-            tb_preview.Text = swcp.CS3_PreviewResource;
-            tb_compclass.Text = swcp.CS3_ComponentClass;
+            tb_compname.Text = swcp.CS3ComponentName;
+            tb_compgroup.Text = swcp.CS3ComponentGroup;
+            tb_tooltip.Text = swcp.CS3ComponentToolTip;
+            tb_icon.Text = swcp.CS3ComponentIconFile;
+            tb_preview.Text = swcp.CS3PreviewResource;
+            tb_compclass.Text = swcp.CS3ComponentClass;
             tb_uiaccess.Text = swcp.MXIUIAccessText;
             tb_desc.Text = swcp.MXIDescription;
             tb_comauthor.Text = swcp.MXIAuthor;
@@ -50,15 +50,15 @@ namespace ExportSWC
             CheckFlexDir();
             CheckFlashDir();
 
-            switch (project.CS3_PreviewType)
+            switch (project.CS3PreviewType)
             {
-                case SWCProject.CS3_PreviewType_ENUM.None:
+                case CS3PreviewType.None:
                     rb_none.Checked = true;
                     break;
-                case SWCProject.CS3_PreviewType_ENUM.ExternalSWF:
+                case CS3PreviewType.ExternalSWF:
                     rb_swf.Checked = true;
                     break;
-                case SWCProject.CS3_PreviewType_ENUM.Class:
+                case CS3PreviewType.Class:
                     rb_class.Checked = true;
                     break;
                 default:
@@ -93,16 +93,16 @@ namespace ExportSWC
 
         private void button3_Click(object sender, EventArgs e)
         {
-            project.CS3_ComponentClass = tb_compclass.Text;
-            project.CS3_ComponentGroup = tb_compgroup.Text;
-            project.CS3_ComponentIconFile = tb_icon.Text;
-            project.CS3_ComponentName = tb_compname.Text;
-            project.CS3_ComponentToolTip = tb_tooltip.Text;
-            project.CS3_PreviewResource = tb_preview.Text;
-            project.CS3_PreviewType =
-                rb_none.Checked ? SWCProject.CS3_PreviewType_ENUM.None :
-                rb_class.Checked ? SWCProject.CS3_PreviewType_ENUM.Class :
-                SWCProject.CS3_PreviewType_ENUM.ExternalSWF;
+            project.CS3ComponentClass = tb_compclass.Text;
+            project.CS3ComponentGroup = tb_compgroup.Text;
+            project.CS3ComponentIconFile = tb_icon.Text;
+            project.CS3ComponentName = tb_compname.Text;
+            project.CS3ComponentToolTip = tb_tooltip.Text;
+            project.CS3PreviewResource = tb_preview.Text;
+            project.CS3PreviewType =
+                rb_none.Checked ? CS3PreviewType.None :
+                rb_class.Checked ? CS3PreviewType.Class :
+                CS3PreviewType.ExternalSWF;
             project.FlexIncludeASI = cb_intrinsic_flex.Checked;
             project.LaunchAEM = cb_runaem.Checked;
             project.MakeCS3 = cb_makecs3.Checked;

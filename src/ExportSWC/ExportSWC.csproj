@@ -1,23 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-	<TargetFramework>net4.8</TargetFramework>
-	<UseWindowsForms>true</UseWindowsForms>
+    <TargetFramework>net4.8</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-	<OutputPath>..\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
+    <LangVersion>latest</LangVersion>
+    <OutputPath>..\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
+    <NoWarn>$(NoWarn);MSB3270</NoWarn>
   </PropertyGroup>
-	
-  <PropertyGroup>	
-	<Product>ExportSWC</Product>
-	<Company>Ali Chamas, Ben Babik-Charnock, David Rettenbacher</Company>
-	<Description>Uses compc.exe from Flex sdk to compile SWC files from project resources</Description>
-	<Copyright>Ali Chamas, Ben Babik-Charnock, David Rettenbacher 2008 - 2023</Copyright>
-	<AssemblyTitle>ExportSWC</AssemblyTitle>
-	<AssemblyVersion>4.2.*</AssemblyVersion>
+
+  <PropertyGroup>
+    <Product>ExportSWC</Product>
+    <Company>Ali Chamas, Ben Babik-Charnock, David Rettenbacher</Company>
+    <Description>Uses compc.exe from Flex sdk to compile SWC files from project resources</Description>
+    <Copyright>Ali Chamas, Ben Babik-Charnock, David Rettenbacher 2008 - 2023</Copyright>
+    <AssemblyTitle>ExportSWC</AssemblyTitle>
+    <AssemblyVersion>4.3.0</AssemblyVersion>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-	<Deterministic>false</Deterministic>
+    <Deterministic>false</Deterministic>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <ProjectReference Include="..\FlashDevelop\External\Plugins\AS3Context\AS3Context.csproj" />
     <ProjectReference Include="..\FlashDevelop\External\Plugins\ASCompletion\ASCompletion.csproj" />
@@ -25,5 +27,5 @@
     <ProjectReference Include="..\FlashDevelop\FlashDevelop\FlashDevelop.csproj" />
     <ProjectReference Include="..\FlashDevelop\PluginCore\PluginCore.csproj" />
   </ItemGroup>
-  
+
 </Project>

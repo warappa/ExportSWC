@@ -9,163 +9,54 @@ namespace ExportSWC
     [Serializable]
     public class SWCProject
     {
-        public SWCProject()
-        {
+        public string FlexBinPath { get; set; } = "";
 
-        }
+        public string FlashBinPath { get; set; } = "";
 
-        private string flexBinPath = "";
-        public string FlexBinPath
-        {
-            get => flexBinPath;
-            set => flexBinPath = value;
-        }
+        public bool FlexIncludeASI { get; set; }
 
-        private string flashBinPath = "";
-        public string FlashBinPath
-        {
-            get => flashBinPath;
-            set => flashBinPath = value;
-        }
+        
+        public bool MakeCS3 { get; set; }
 
-        private bool flexIncludeAsi;
-        public bool FlexIncludeASI
-        {
-            get => flexIncludeAsi;
-            set => flexIncludeAsi = value;
-        }
+        public bool MakeMXI { get; set; }
 
-        private bool makeCS3;
-        public bool MakeCS3
-        {
-            get => makeCS3;
-            set => makeCS3 = value;
-        }
+        public bool IntegrateAsDoc { get; set; }
 
-        private bool makeMXI;
-        public bool MakeMXI
-        {
-            get => makeMXI;
-            set => makeMXI = value;
-        }
+        public bool LaunchAEM { get; set; }
 
-        private bool integrateAsDoc = true;
-        public bool IntegrateAsDoc
-        {
-            get => integrateAsDoc;
-            set => integrateAsDoc = value;
-        }
+        public string MXIVersion { get; set; }
 
-        private bool launchAEM;
-        public bool LaunchAEM
-        {
-            get => launchAEM;
-            set => launchAEM = value;
-        }
+        public bool MXPIncludeASI { get; set; }
 
-        private string mxiVersion;
-        public string MXIVersion
-        {
-            get => mxiVersion;
-            set => mxiVersion = value;
-        }
+        public string MXIAuthor { get; set; }
 
-        private bool mxpIncludeAsi;
-        public bool MXPIncludeASI
-        {
-            get => mxpIncludeAsi;
-            set => mxpIncludeAsi = value;
-        }
+        public string MXIDescription { get; set; }
 
-        private string mxiAuthor;
-        public string MXIAuthor
-        {
-            get => mxiAuthor;
-            set => mxiAuthor = value;
-        }
-
-        private string mxiDescription;
-        public string MXIDescription
-        {
-            get => mxiDescription;
-            set => mxiDescription = value;
-        }
-
-        private string mxiUIAccessText;
-        public string MXIUIAccessText
-        {
-            get => mxiUIAccessText;
-            set => mxiUIAccessText = value;
-        }
+        public string MXIUIAccessText { get; set; }
 
         #region Flex SWC
 
-        private List<string> flex_ignoreClasses = new List<string>();
-        public List<string> Flex_IgnoreClasses
-        {
-            get => flex_ignoreClasses;
-            set => flex_ignoreClasses = value;
-        }
+        public List<string> FlexIgnoreClasses { get; set; } = new List<string>();
 
         #endregion
 
         #region Flash CS3
 
-        private List<string> cs3_ignoreClasses = new List<string>();
-        public List<string> CS3_IgnoreClasses
-        {
-            get => cs3_ignoreClasses;
-            set => cs3_ignoreClasses = value;
-        }
+        public List<string> CS3IgnoreClasses { get; set; } = new List<string>();
 
-        private string cs3_componentClass;
-        public string CS3_ComponentClass
-        {
-            get => cs3_componentClass;
-            set => cs3_componentClass = value;
-        }
+        public string CS3ComponentClass { get; set; }
 
-        private string cs3_componentName;
-        public string CS3_ComponentName
-        {
-            get => cs3_componentName;
-            set => cs3_componentName = value;
-        }
+        public string CS3ComponentName { get; set; }
 
-        private string cs3_componentGroup;
-        public string CS3_ComponentGroup
-        {
-            get => cs3_componentGroup;
-            set => cs3_componentGroup = value;
-        }
+        public string CS3ComponentGroup { get; set; }
 
-        private string cs3_componentToolTip;
-        public string CS3_ComponentToolTip
-        {
-            get => cs3_componentToolTip;
-            set => cs3_componentToolTip = value;
-        }
+        public string CS3ComponentToolTip { get; set; }
 
-        private string cs3_componentIconFile;
-        public string CS3_ComponentIconFile
-        {
-            get => cs3_componentIconFile;
-            set => cs3_componentIconFile = value;
-        }
+        public string CS3ComponentIconFile { get; set; }
 
-        private CS3_PreviewType_ENUM cs3_previewType;
-        public CS3_PreviewType_ENUM CS3_PreviewType
-        {
-            get => cs3_previewType;
-            set => cs3_previewType = value;
-        }
+        public CS3PreviewType CS3PreviewType { get; set; }
 
-        private string cs3_previewResource;
-        public string CS3_PreviewResource
-        {
-            get => cs3_previewResource;
-            set => cs3_previewResource = value;
-        }
+        public string CS3PreviewResource { get; set; }
 
         #endregion
 
@@ -194,21 +85,14 @@ namespace ExportSWC
             return (SWCProject)output;
         }
 
-        public enum CS3_PreviewType_ENUM
-        {
-            None,
-            ExternalSWF,
-            Class
-        }
-
         internal bool ValidImage()
         {
-            if (!File.Exists(cs3_componentIconFile))
+            if (!File.Exists(CS3ComponentIconFile))
             {
                 return false;
             }
 
-            var img = Image.FromFile(cs3_componentIconFile);
+            var img = Image.FromFile(CS3ComponentIconFile);
             var h = img.Size.Height;
             var w = img.Size.Width;
             img.Dispose();
@@ -217,11 +101,11 @@ namespace ExportSWC
 
         internal bool ValidLivePreview()
         {
-            switch (cs3_previewType)
+            switch (CS3PreviewType)
             {
-                case CS3_PreviewType_ENUM.ExternalSWF:
-                    return File.Exists(cs3_previewResource);
-                case CS3_PreviewType_ENUM.Class:
+                case CS3PreviewType.ExternalSWF:
+                    return File.Exists(CS3PreviewResource);
+                case CS3PreviewType.Class:
                     return true;
                 default:
                     return false;
@@ -230,12 +114,12 @@ namespace ExportSWC
 
         internal void IncrementVersion(int a, int b, int c)
         {
-            if (mxiVersion == null)
+            if (MXIVersion == null)
             {
-                mxiVersion = "0.0.0";
+                MXIVersion = "0.0.0";
             }
 
-            var vers = mxiVersion.Split('.');
+            var vers = MXIVersion.Split('.');
             if (vers.Length != 3)
             {
                 vers = new string[] { "0", "0", "0", "0" };
@@ -245,7 +129,7 @@ namespace ExportSWC
             vers[1] = (Convert.ToInt32(vers[1]) + b).ToString();
             vers[2] = (Convert.ToInt32(vers[2]) + c).ToString();
 
-            mxiVersion = string.Format("{0}.{1}.{2}", vers[0], vers[1], vers[2]);
+            MXIVersion = string.Format("{0}.{1}.{2}", vers[0], vers[1], vers[2]);
         }
     }
 }
