@@ -3,7 +3,7 @@ using PluginCore.Managers;
 
 namespace ExportSWC.Tracing
 {
-    public class TraceManagerTracer : ITraceable
+    internal class TraceManagerTracer : ITraceable
     {
         public void WriteLine(string msg)
         {

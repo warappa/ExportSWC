@@ -2,7 +2,7 @@
 using System.IO;
 using ProjectManager.Projects.AS3;
 
-namespace ExportSWC
+namespace ExportSWC.AsDoc
 {
     internal class AsDocContext
     {
@@ -16,6 +16,6 @@ namespace ExportSWC
         public bool IsAir { get; set; }
         public string FlashPlayerTargetVersion { get; set; }
         public List<string> FlexIgnoreClasses { get; set; } = new List<string>();
-        public string FlexOutputPath { get;set; }
+        public string FlexOutputPath { get; set; }
     }
 }

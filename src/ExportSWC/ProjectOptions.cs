@@ -3,11 +3,13 @@ using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
+using ExportSWC.Compiling;
+using ExportSWC.Options;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
-    public partial class ProjectOptions : Form
+    internal partial class ProjectOptions : Form
     {
         private readonly SWCBuilder builder;
         private readonly SWCProject project;

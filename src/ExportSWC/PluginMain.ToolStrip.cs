@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using ExportSWC.Options;
 using ExportSWC.Resources;
 using PluginCore;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
-    public partial class PluginMain
+    internal partial class PluginMain
     {
         /// <summary>
         /// Creates a menu item for the plugin and adds a ignored key

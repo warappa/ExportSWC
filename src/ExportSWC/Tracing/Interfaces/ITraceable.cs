@@ -1,6 +1,6 @@
 ﻿namespace ExportSWC.Tracing.Interfaces
 {
-    public interface ITraceable
+    internal interface ITraceable
     {
         void WriteLine(string msg);
         void WriteLine(string msg, TraceMessageType messageType);

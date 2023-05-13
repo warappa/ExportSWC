@@ -1,4 +1,4 @@
-﻿namespace ExportSWC
+﻿namespace ExportSWC.Options
 {
     public enum CS3PreviewType
     {

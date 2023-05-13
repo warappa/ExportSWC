@@ -1,24 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Windows.Forms;
 using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
+using ExportSWC.Utils;
 using ICSharpCode.SharpZipLib.Zip;
 using PluginCore.Utilities;
 
-namespace ExportSWC
+namespace ExportSWC.AsDoc
 {
     internal class AsDocGenerator
     {
         private readonly ITraceable _tracer;
-        private bool _anyErrors;
 
         public AsDocGenerator(ITraceable tracer)
         {
-            _tracer = tracer;
+            _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
         }
 
         public bool IncludeAsDoc(AsDocContext context)
@@ -33,7 +32,7 @@ namespace ExportSWC
 
 
             var asDocPath = Path.Combine(context.FlexSdkBase, @"bin\asdoc.exe");
-            var asdoc = FileUtils.GetExeOrBatPath(asDocPath);
+            var asdoc = PathUtils.GetExeOrBatPath(asDocPath);
             if (asdoc is null)
             {
                 throw new FileNotFoundException("asdoc not found", asDocPath);
@@ -257,7 +256,6 @@ namespace ExportSWC
 
         private void ProcessError(object sender, string line)
         {
-            _anyErrors = true;
             //TraceManager.AddAsync(line, 3);
             WriteLine(line, TraceMessageType.Error);
         }

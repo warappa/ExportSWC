@@ -1,6 +1,6 @@
 ﻿namespace ExportSWC.Tracing
 {
-    public enum TraceMessageType
+    internal enum TraceMessageType
     {
         Verbose = 0,
         Message = 1,

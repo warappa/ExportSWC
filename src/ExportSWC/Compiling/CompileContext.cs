@@ -3,10 +3,11 @@ using System.IO;
 using ProjectManager.Projects.AS3;
 using System.Xml;
 using ProjectManager.Actions;
+using ExportSWC.Options;
 
-namespace ExportSWC
+namespace ExportSWC.Compiling
 {
-    public class CompileContext
+    internal class CompileContext
     {
         private string _projectFullPath;
         private string _flexSdkBase;

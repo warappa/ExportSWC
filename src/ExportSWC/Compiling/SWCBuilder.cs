@@ -19,12 +19,35 @@ using ProjectManager.Projects.AS3;
 using System.Windows.Forms;
 using System.Xml;
 using System.Drawing;
-using csscript;
+using ExportSWC.Utils;
+using ExportSWC.Options;
+using ExportSWC.AsDoc;
 
-namespace ExportSWC
+namespace ExportSWC.Compiling
 {
-    public partial class SWCBuilder
+    internal class SWCBuilder
     {
+        private bool _anyErrors;
+        private bool _running;
+        private readonly ITraceable _tracer;
+
+        public SWCBuilder(ITraceable tracer)
+        {
+            _tracer = tracer;
+        }
+
+        private void ProcessOutput(object sender, string line)
+        {
+            //TraceManager.AddAsync(line);
+        }
+
+        private void ProcessError(object sender, string line)
+        {
+            _anyErrors = true;
+            //TraceManager.AddAsync(line, 3);
+            WriteLine(line, TraceMessageType.Error);
+        }
+
         /// <summary>
         /// Main method for plugin - Export SWC using compc.exe
         /// </summary>
@@ -48,7 +71,7 @@ namespace ExportSWC
             {
                 Project = project,
                 SwcProjectSettings = swcProjectSettings,
-                
+
             };
 
             try
@@ -224,7 +247,7 @@ namespace ExportSWC
 
             var success = process.WaitForExit(15000);
 
-            return success && (process.ExitCode == 0);
+            return success && process.ExitCode == 0;
         }
 
         protected void PatchFlashSWC(CompileContext context)
@@ -267,18 +290,18 @@ namespace ExportSWC
                 }
             }
             // <flash version="9.0" build="r494" platform="WIN" />
-            var fel = CreateElement("flash", catxml.DocumentElement["versions"]);
+            var fel = catxml.DocumentElement["versions"].CreateElement("flash");
             fel.SetAttribute("version", "9.0");
             fel.SetAttribute("build", "r494");
             fel.SetAttribute("platform", "WIN");
 
             // <feature-components />
-            CreateElement("feature-components", catxml.DocumentElement["features"]);
+            catxml.DocumentElement["features"].CreateElement("feature-components");
 
             // <file path="icon_0.png" mod="1061758088000" />
             if (catxml.DocumentElement["files"] == null)
             {
-                CreateElement("files", catxml.DocumentElement, string.Empty);
+                catxml.DocumentElement.CreateElement("files", string.Empty);
             }
 
             if (!swcProjectSettings.ValidImage())
@@ -290,17 +313,17 @@ namespace ExportSWC
                 Image.FromFile(swcProjectSettings.CS3ComponentIconFile).Save(tempDir + "\\icon.png", ImageFormat.Png);
             }
 
-            var iel = CreateElement("file", catxml.DocumentElement["files"], string.Empty);
+            var iel = catxml.DocumentElement["files"].CreateElement("file", string.Empty);
             iel.SetAttribute("path", "icon.png");
             iel.SetAttribute("mod", new FileInfo(tempDir + "\\icon.png").LastWriteTimeUtc.ToFileTimeUtc().ToString());
 
             // <component className="Symbol1" name="Symbol 1" icon="icon_0.png"  />
             if (catxml.DocumentElement["components"] == null)
             {
-                CreateElement("components", catxml.DocumentElement);
+                catxml.DocumentElement.CreateElement("components");
             }
 
-            var cel = CreateElement("component", catxml.DocumentElement["components"]);
+            var cel = catxml.DocumentElement["components"].CreateElement("component");
             cel.SetAttribute("className", swcProjectSettings.CS3ComponentClass);
             cel.SetAttribute("name", swcProjectSettings.CS3ComponentName);
             cel.SetAttribute("icon", "icon.png");
@@ -340,7 +363,7 @@ namespace ExportSWC
                 if (livePreviewFile)
                 {
                     cel.SetAttribute("preview", "livePreview.swf");
-                    var lpf = CreateElement("file", catxml.DocumentElement["files"]);
+                    var lpf = catxml.DocumentElement["files"].CreateElement("file");
                     lpf.SetAttribute("path", "livePreview.swf");
                     lpf.SetAttribute("mod", new FileInfo(tempDir + "\\livePreview.swf").LastWriteTimeUtc.ToFileTimeUtc().ToString());
                 }
@@ -409,7 +432,7 @@ namespace ExportSWC
             }
 
             lpc.DocumentElement["compileTargets"].RemoveAll();
-            var el = CreateElement("compile", lpc.DocumentElement["compileTargets"]);
+            var el = lpc.DocumentElement["compileTargets"].CreateElement("compile");
             el.SetAttribute("path", FindClassPath(context, swcProjectSettings.CS3PreviewResource));
 
             lpc.Save(tproFile);
@@ -534,8 +557,8 @@ namespace ExportSWC
             try
             {
                 // get the project root and compc.exe location from the command argument
-                var compc = FileUtils.GetExeOrBatPath(Path.Combine(flexSdkBase, "bin", "compc.exe"));
-                if ((!Directory.Exists(projectFullPath)) | (!compc.Exists))
+                var compc = PathUtils.GetExeOrBatPath(Path.Combine(flexSdkBase, "bin", "compc.exe"));
+                if (!Directory.Exists(projectFullPath) | !compc.Exists)
                 {
                     throw new FileNotFoundException("Project or compc.exe not found", projectFullPath + "|" + compc.FullName);
                 }
@@ -614,7 +637,7 @@ namespace ExportSWC
 
                 Control.CheckForIllegalCrossThreadCalls = checkForIllegalCrossThreadCalls;
 
-                return (_anyErrors == false) & (process.HostedProcess.ExitCode == 0);
+                return _anyErrors == false & process.HostedProcess.ExitCode == 0;
             }
             catch (Exception ex)
             {
@@ -722,24 +745,24 @@ namespace ExportSWC
             var doc = new XmlDocument();
             doc.LoadXml("<?xml version=\"1.0\" encoding=\"UTF-8\" ?><macromedia-extension />");
             doc.DocumentElement.SetAttribute("name", swcProjectSettings.CS3ComponentName);
-            
+
             swcProjectSettings.IncrementVersion(0, 0, 1);
             swcProjectSettings.Save(context.SWCProjectSettingsPath);
 
             doc.DocumentElement.SetAttribute("version", swcProjectSettings.MXIVersion);
             doc.DocumentElement.SetAttribute("type", "flashcomponentswc");
             doc.DocumentElement.SetAttribute("requires-restart", "false");
-            
-            CreateElement("author", doc.DocumentElement).SetAttribute("name", swcProjectSettings.MXIAuthor);
-            CreateElement("description", doc.DocumentElement).InnerXml = "<![CDATA[ " + swcProjectSettings.MXIDescription + " ]]>";
-            CreateElement("ui-access", doc.DocumentElement).InnerXml = "<![CDATA[ " + swcProjectSettings.MXIUIAccessText + " ]]>";
-            
-            var pro = CreateElement("product", CreateElement("products", doc.DocumentElement));
+
+            doc.DocumentElement.CreateElement("author").SetAttribute("name", swcProjectSettings.MXIAuthor);
+            doc.DocumentElement.CreateElement("description").InnerXml = "<![CDATA[ " + swcProjectSettings.MXIDescription + " ]]>";
+            doc.DocumentElement.CreateElement("ui-access").InnerXml = "<![CDATA[ " + swcProjectSettings.MXIUIAccessText + " ]]>";
+
+            var pro = doc.DocumentElement.CreateElement("products").CreateElement("product");
             pro.SetAttribute("name", "Flash");
             pro.SetAttribute("version", "9");
             pro.SetAttribute("primary", "true");
-            
-            var fil = CreateElement("file", CreateElement("files", doc.DocumentElement));
+
+            var fil = doc.DocumentElement.CreateElement("files").CreateElement("file");
             fil.SetAttribute("name", Path.GetFileName(context.CompcBinPath_Flash));
             fil.SetAttribute("destination", "$flash/Components/" + swcProjectSettings.CS3ComponentGroup);
 
@@ -760,106 +783,106 @@ namespace ExportSWC
 
             // general options...
             // output
-            CreateElement("output", config.DocumentElement, binout);
+            config.DocumentElement.CreateElement("output", binout);
 
             // use-network
-            CreateElement("use-network", config.DocumentElement, project.CompilerOptions.UseNetwork.ToString().ToLower());
+            config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
 
             // If Air is used, target version is AIR version
             if (!context.IsAir)
             {
                 // target
-                CreateElement("target-player", config.DocumentElement, context.FlashPlayerTargetVersion);
+                config.DocumentElement.CreateElement("target-player", context.FlashPlayerTargetVersion);
             }
             // warnings
-            CreateElement("warnings", config.DocumentElement, project.CompilerOptions.Warnings.ToString().ToLower());
+            config.DocumentElement.CreateElement("warnings", project.CompilerOptions.Warnings.ToString().ToLower());
 
             // locale
             if (project.CompilerOptions.Locale != string.Empty)
             {
-                CreateElement("locale", config.DocumentElement, project.CompilerOptions.Locale);
+                config.DocumentElement.CreateElement("locale", project.CompilerOptions.Locale);
             }
 
             // runtime-shared-libraries
             if (project.CompilerOptions.RSLPaths.Length > 0)
             {
-                var rslUrls = CreateElement("runtime-shared-libraries", config.DocumentElement, null);
+                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null);
                 foreach (var rslUrl in project.CompilerOptions.RSLPaths)
                 {
-                    CreateElement("rsl-url", rslUrls, rslUrl);
+                    rslUrls.CreateElement("rsl-url", rslUrl);
                 }
             }
 
             // benchmark
-            CreateElement("benchmark", config.DocumentElement, project.CompilerOptions.Benchmark.ToString().ToLower());
+            config.DocumentElement.CreateElement("benchmark", project.CompilerOptions.Benchmark.ToString().ToLower());
 
             // compiler options...
-            var compiler = CreateElement("compiler", config.DocumentElement, null);
+            var compiler = config.DocumentElement.CreateElement("compiler", null);
 
             // compute-digest
             if (!rsl)
             {
-                CreateElement("compute-digest", config.DocumentElement, "false");
+                config.DocumentElement.CreateElement("compute-digest", "false");
             }
 
             // accessible
-            CreateElement("accessible", compiler, project.CompilerOptions.Accessible.ToString().ToLower());
+            compiler.CreateElement("accessible", project.CompilerOptions.Accessible.ToString().ToLower());
 
             // allow-source-path-overlap
-            CreateElement("allow-source-path-overlap", compiler, project.CompilerOptions.AllowSourcePathOverlap.ToString().ToLower());
+            compiler.CreateElement("allow-source-path-overlap", project.CompilerOptions.AllowSourcePathOverlap.ToString().ToLower());
 
             // optimize
-            CreateElement("optimize", compiler, project.CompilerOptions.Optimize.ToString().ToLower());
+            compiler.CreateElement("optimize", project.CompilerOptions.Optimize.ToString().ToLower());
 
             // strict
-            CreateElement("strict", compiler, project.CompilerOptions.Strict.ToString().ToLower());
+            compiler.CreateElement("strict", project.CompilerOptions.Strict.ToString().ToLower());
 
             // es
-            CreateElement("es", compiler, project.CompilerOptions.ES.ToString().ToLower());
+            compiler.CreateElement("es", project.CompilerOptions.ES.ToString().ToLower());
 
             // show-actionscript-warnings
-            CreateElement("show-actionscript-warnings", compiler, project.CompilerOptions.ShowActionScriptWarnings.ToString().ToLower());
+            compiler.CreateElement("show-actionscript-warnings", project.CompilerOptions.ShowActionScriptWarnings.ToString().ToLower());
 
             // show-binding-warnings
-            CreateElement("show-binding-warnings", compiler, project.CompilerOptions.ShowBindingWarnings.ToString().ToLower());
+            compiler.CreateElement("show-binding-warnings", project.CompilerOptions.ShowBindingWarnings.ToString().ToLower());
 
             // show-unused-type-selector- warnings
-            CreateElement("show-unused-type-selector-warnings", compiler, project.CompilerOptions.ShowUnusedTypeSelectorWarnings.ToString().ToLower());
+            compiler.CreateElement("show-unused-type-selector-warnings", project.CompilerOptions.ShowUnusedTypeSelectorWarnings.ToString().ToLower());
 
             // use-resource-bundle-metadata
-            CreateElement("use-resource-bundle-metadata", compiler, project.CompilerOptions.UseResourceBundleMetadata.ToString().ToLower());
+            compiler.CreateElement("use-resource-bundle-metadata", project.CompilerOptions.UseResourceBundleMetadata.ToString().ToLower());
 
             // verbose-stacktraces
-            CreateElement("verbose-stacktraces", compiler, project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
+            compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
 
             // source-path & include-classes
-            var sourcePath = CreateElement("source-path", compiler, null);
+            var sourcePath = compiler.CreateElement("source-path", null);
             foreach (var classPath in project.Classpaths)
             {
                 var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
-                CreateElement("path-element", sourcePath, absClassPath);
+                sourcePath.CreateElement("path-element", absClassPath);
             }
 
             // general options...
             // libarary-path			
             if (project.CompilerOptions.LibraryPaths.Length > 0)
             {
-                var includeLibraries = CreateElement("library-path", compiler, null);
+                var includeLibraries = compiler.CreateElement("library-path", null);
                 foreach (var libPath in project.CompilerOptions.LibraryPaths)
                 {
                     var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
-                    CreateElement("path-element", includeLibraries, absLibPath);
+                    includeLibraries.CreateElement("path-element", absLibPath);
                 }
             }
 
             // include-libraries
             if (project.CompilerOptions.IncludeLibraries.Length > 0)
             {
-                var includeLibraries = CreateElement("include-libraries", compiler, null);
+                var includeLibraries = compiler.CreateElement("include-libraries", null);
                 foreach (var libPath in project.CompilerOptions.IncludeLibraries)
                 {
                     var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
-                    CreateElement("library", includeLibraries, absLibPath);
+                    includeLibraries.CreateElement("library", absLibPath);
                 }
             }
 
@@ -871,7 +894,7 @@ namespace ExportSWC
                 classExclusions.Add(PathUtils.GetProjectItemFullPath(context.ProjectFullPath, origClassExclusions[i]).ToLower());
             }
 
-            var includeClasses = CreateElement("include-classes", config.DocumentElement, null);
+            var includeClasses = config.DocumentElement.CreateElement("include-classes", null);
             foreach (var classPath in project.Classpaths)
             {
                 var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
@@ -881,7 +904,7 @@ namespace ExportSWC
             // external-library-path 
             if (project.CompilerOptions.ExternalLibraryPaths != null && project.CompilerOptions.ExternalLibraryPaths.Length > 0)
             {
-                var externalLibs = CreateElement("external-library-path", compiler, null);
+                var externalLibs = compiler.CreateElement("external-library-path", null);
                 var attr = externalLibs.OwnerDocument.CreateAttribute("append");
                 attr.InnerXml = "true";
                 externalLibs.Attributes.Append(attr);
@@ -889,7 +912,7 @@ namespace ExportSWC
                 foreach (var libPath in project.CompilerOptions.ExternalLibraryPaths)
                 {
                     var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
-                    CreateElement("path-element", externalLibs, absLibPath);
+                    externalLibs.CreateElement("path-element", absLibPath);
                 }
             }
 
@@ -913,7 +936,7 @@ namespace ExportSWC
                 {
                     if (!PathUtils.IsFileIgnored(projectPath, file.FullName, classExclusions))
                     {
-                        CreateElement("class", includeClasses, parentPath + Path.GetFileNameWithoutExtension(file.FullName));
+                        includeClasses.CreateElement("class", parentPath + Path.GetFileNameWithoutExtension(file.FullName));
                     }
                 }
             }
@@ -923,6 +946,21 @@ namespace ExportSWC
             {
                 IncludeClassesIn(includeClasses, projectPath, folder.FullName, parentPath + folder.Name + ".", classExclusions);
             }
+        }
+
+        private void WriteLine(string msg)
+        {
+            WriteLine(msg, TraceMessageType.Verbose);
+        }
+
+        private void WriteLine(string msg, TraceMessageType messageType)
+        {
+            if (_tracer == null)
+            {
+                return;
+            }
+
+            _tracer.WriteLine(msg, messageType);
         }
     }
 }

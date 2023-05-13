@@ -1,10 +1,26 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 
-namespace ExportSWC
+namespace ExportSWC.Utils
 {
-    public static class PathUtils
+    internal static class PathUtils
     {
+        public static FileInfo GetExeOrBatPath(string filepath)
+        {
+            var fileInfo = new FileInfo(filepath);
+            if (!fileInfo.Exists)
+            {
+                var batFilepath = Path.ChangeExtension(filepath, ".bat");
+                fileInfo = new FileInfo(batFilepath);
+                if (!fileInfo.Exists)
+                {
+                    throw new FileNotFoundException($"{filepath} not found", fileInfo.FullName);
+                }
+            }
+
+            return fileInfo;
+        }
+
         public static bool IsFileIgnored(string projectPath, string filepath, List<string> classExclusions)
         {
             var filePath = GetProjectItemFullPath(projectPath, filepath);

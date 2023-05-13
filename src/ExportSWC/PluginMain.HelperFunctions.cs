@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using ExportSWC.Options;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
-    public partial class PluginMain
+    internal partial class PluginMain
     {
         protected string GetRelativePath(string rootPath, string targetPath)
         {

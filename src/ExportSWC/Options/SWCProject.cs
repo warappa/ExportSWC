@@ -4,7 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Xml.Serialization;
 
-namespace ExportSWC
+namespace ExportSWC.Options
 {
     [Serializable]
     public class SWCProject
@@ -15,7 +15,7 @@ namespace ExportSWC
 
         public bool FlexIncludeASI { get; set; }
 
-        
+
         public bool MakeCS3 { get; set; }
 
         public bool MakeMXI { get; set; }
