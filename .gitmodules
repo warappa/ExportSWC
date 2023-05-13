@@ -1,0 +1,3 @@
+[submodule "src/FlashDevelop"]
+	path = src/FlashDevelop
+	url = https://github.com/fdorg/flashdevelop

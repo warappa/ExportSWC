@@ -1,0 +1,1 @@
+echo Call to SetVersion.bat is ignored in ExportSWC build
