@@ -506,7 +506,7 @@ namespace ExportSWC.Compiling
             };
             var buf = new byte[8192];
             str.PutNextEntry(entry);
-            
+
             using var fstr = File.OpenRead(file);
             int c;
             do
@@ -581,25 +581,26 @@ namespace ExportSWC.Compiling
                     Thread.Sleep(5);
                     Application.DoEvents();
                 }
-                
+
                 var success = process.HostedProcess!.ExitCode == 0;
 
                 Control.CheckForIllegalCrossThreadCalls = false;
 
                 // Include AsDoc if FlexSdkVersion >= 4
-                if (swcProjectSettings.IntegrateAsDoc &&
+                if (success &&
+                    swcProjectSettings.IntegrateAsDoc &&
                     context.IsAsDocIntegrationAvailable)
                 {
                     var generator = new AsDocGenerator(_tracer);
                     var asDocContext = new AsDocContext(
-                        project, 
-                        sdkBase, 
-                        context.TargetVersion, 
-                        context.IsAir, 
-                        context.CompcOutputPathFlex, 
+                        project,
+                        sdkBase,
+                        context.TargetVersion,
+                        context.IsAir,
+                        context.CompcOutputPathFlex,
                         swcProjectSettings.FlexIgnoreClasses);
 
-                    _anyErrors |= generator.IncludeAsDoc(asDocContext) == false;
+                    _anyErrors |= !generator.IncludeAsDoc(asDocContext);
                 }
 
                 success = success && !_anyErrors;
@@ -921,7 +922,7 @@ namespace ExportSWC.Compiling
             // add every AS class to the manifest
             foreach (var file in directory.GetFiles())
             {
-                if (file.Extension is 
+                if (file.Extension is
                     ".as" or
                     ".mxml")
                 {
@@ -941,12 +942,12 @@ namespace ExportSWC.Compiling
 
         private void ProcessOutput(object sender, string line)
         {
-            WriteLine($"  compc: {line}", TraceMessageType.Verbose);
+            WriteLine($"[compc] {line}", TraceMessageType.Verbose);
         }
 
         private void ProcessError(object sender, string line)
         {
-            var isError = line.StartsWithOrdinal("Error:");
+            var isError = line.IndexOf("Error:") > -1;
             _anyErrors |= isError;
             var level = TraceMessageType.Warning;
             if (isError)
@@ -954,7 +955,7 @@ namespace ExportSWC.Compiling
                 level = TraceMessageType.Error;
             }
             //TraceManager.AddAsync(line, 3);
-            WriteLine($"  compc: {line}", level);
+            WriteLine($"[compc] {line}", level);
         }
 
         private void WriteLine(string msg)
