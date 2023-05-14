@@ -67,7 +67,7 @@ namespace ExportSWC
                     {
                         var proj = AS3Project.Load(node.BackingPath);
 
-                        _compiler.Build(proj, GetSwcProjectSettings(proj), new TraceManagerTracer());
+                        _compiler.Build(proj, GetSwcProjectSettings(proj));
                     };
 
                     var openSwcSettings = new ToolStripMenuItem("SWC Settings")

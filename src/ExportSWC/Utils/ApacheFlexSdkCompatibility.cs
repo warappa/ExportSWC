@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using PluginCore;
@@ -14,16 +15,27 @@ namespace ExportSWC.Utils
         {
             if (project.Language == "as3")
             {
+                //env["SWF_VERSION"] = "44";
+
+                // see <sdk>\build.xml target "fix-config-file-for-flashbuilder":
+                // !wrong information!: "{playerglobalHome} replaced with libs/player/{targetPlayerMajorVersion}.{targetPlayerMinorVersion}"
+                // !actual information!: "{playerglobalHome} replaced with libs/player"
+
                 var playerglobalHome = Environment.ExpandEnvironmentVariables("%PLAYERGLOBAL_HOME%");
                 if (playerglobalHome.StartsWith('%'))
                 {
-                    env["PLAYERGLOBAL_HOME"] = Path.Combine(project.CurrentSDK ?? project.PreferredSDK, "frameworks/libs/player");
+                    //env["PLAYERGLOBAL_HOME"] = Path.Combine(project.CurrentSDK, "frameworks/libs/player", $"{project.MovieOptions.MajorVersion}.{project.MovieOptions.MinorVersion}");
+                    env["PLAYERGLOBAL_HOME"] = Path.Combine(project.CurrentSDK, "frameworks/libs/player");
                 }
-
+                
+                // see <sdk>\build.xml target "fix-config-file-for-flashbuilder":
+                // "{airHome}/frameworks/ is removed so path left as libs/air"
+                // so "airHome" is just the root of the SDK
+                // We don't replace but provide environment variables to make it also work
                 var airHome = Environment.ExpandEnvironmentVariables("%AIR_HOME%");
                 if (airHome.StartsWith('%'))
                 {
-                    var airSdk = project.CurrentSDK ?? project.PreferredSDK;
+                    var airSdk = project.CurrentSDK;
 
                     if (!ContainsAirConfig(airSdk))
                     {
@@ -38,20 +50,6 @@ namespace ExportSWC.Utils
                         }
                     }
 
-                    //if (airSdk.IndexOf("AIR", StringComparison.OrdinalIgnoreCase) == -1)
-                    //{
-                    //    var sdks = BuildActions.GetInstalledSDKs(project);
-                    //    airSdk = sdks
-                    //        .Select(x => new
-                    //        {
-                    //            Index = x.Name.IndexOf("AIR", StringComparison.OrdinalIgnoreCase),
-                    //            Sdk = x
-                    //        })
-                    //        .OrderBy(x => x.Index == -1 ? 10000 : x.Index)
-                    //        .FirstOrDefault()
-                    //        .Sdk.Path;
-                    //}
-
                     if (airSdk is not null)
                     {
                         // Hack
@@ -63,12 +61,14 @@ namespace ExportSWC.Utils
                 if (targetPlayerMajorVersion.StartsWith('%'))
                 {
                     env["TARGETPLAYER_MAJOR_VERSION"] = project.MovieOptions.Version.Substring(0, project.MovieOptions.Version.IndexOf('.'));
+                    Debug.WriteLine(env["TARGETPLAYER_MAJOR_VERSION"]);
                 }
                 var targetPlayerMinorVersion = Environment.ExpandEnvironmentVariables("%TARGETPLAYER_MINOR_VERSION%");
                 if (targetPlayerMinorVersion.StartsWith('%'))
                 {
                     var majorDot = project.MovieOptions.Version.IndexOf('.');
                     env["TARGETPLAYER_MINOR_VERSION"] = project.MovieOptions.Version.Substring(majorDot + 1);
+                    Debug.WriteLine(env["TARGETPLAYER_MINOR_VERSION"]);
                 }
 
                 var locale = Environment.ExpandEnvironmentVariables("%LOCALE%");

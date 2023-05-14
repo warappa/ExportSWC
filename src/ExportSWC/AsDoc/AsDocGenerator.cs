@@ -39,9 +39,7 @@ namespace ExportSWC.AsDoc
             
             WriteLine("AsDoc temp output: " + tempPath);
 
-            var sdkBase = context.IsAir ? context.AirSdkBase : context.FlexSdkBase;
-            
-            var asDocPath = Path.Combine(sdkBase, @"bin\asdoc.exe");
+            var asDocPath = Path.Combine(context.SdkBase, @"bin\asdoc.exe");
             var asdoc = PathUtils.GetExeOrBatPath(asDocPath);
             if (asdoc is null)
             {
@@ -200,20 +198,20 @@ namespace ExportSWC.AsDoc
             // no documentation for dependencies
             arguments += "-exclude-dependencies=true ";
 
-            if (context.IsAir)
+            //if (context.IsAir)
             {
-                arguments += "+configname=air ";
+                arguments += $"+configname={ (context.IsAir ? "air" : "flex") } ";
             }
-            else
+            //else
             {
                 // the target-player
-                arguments += $"-target-player={context.FlashPlayerTargetVersion} ";
+                arguments += $"-target-player={context.TargetVersion} ";
             }
 
             // locale
             if (!string.IsNullOrEmpty(context.Project.CompilerOptions.Locale))
             {
-                arguments += $"-locale={context.Project.CompilerOptions.Locale}";
+                arguments += $"-locale={context.Project.CompilerOptions.Locale} ";
             }
 
             arguments = $@"-lenient=true -keep-xml=true -skip-xsl=true -output ""{tempPath}"" {arguments}";

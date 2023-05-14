@@ -23,7 +23,7 @@ namespace ExportSWC.Utils
         public string WorkingDirectory;
         public Process HostedProcess { get; set; }
         public bool IsRunning { get; set; }
-        public bool RedirectInput;
+        public bool RedirectInput { get; set; }
 
 
         public void Run(string fileName, string arguments, Dictionary<string, string> environment) => Run(fileName, arguments, false, environment);

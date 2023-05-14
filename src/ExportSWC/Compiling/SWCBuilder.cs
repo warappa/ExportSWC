@@ -22,6 +22,7 @@ using System.Drawing;
 using ExportSWC.Utils;
 using ExportSWC.Options;
 using ExportSWC.AsDoc;
+using ProjectManager.Actions;
 
 namespace ExportSWC.Compiling
 {
@@ -61,11 +62,6 @@ namespace ExportSWC.Compiling
         /// <param name="e">the event args</param>
         public void Build(AS3Project project, SWCProject swcProjectSettings)
         {
-            Build(project, swcProjectSettings, null);
-        }
-
-        public void Build(AS3Project project, SWCProject swcProjectSettings, ITraceable tracer)
-        {
             if (_running)
             {
                 return;
@@ -77,8 +73,10 @@ namespace ExportSWC.Compiling
             {
                 Project = project,
                 SwcProjectSettings = swcProjectSettings,
-
             };
+
+
+            BuildActions.GetCompilerPath(project); // use correct SDK
 
             try
             {
@@ -99,10 +97,10 @@ namespace ExportSWC.Compiling
 
             RunPreBuildEvent(context);
 
-            buildSuccess &= RunCompc(context, context.CompcConfigPath_Flex);
+            buildSuccess &= RunCompc(context, context.CompcConfigPathFlex);
             if (context.SwcProjectSettings.MakeCS3)
             {
-                buildSuccess &= RunCompc(context, context.CompcConfigPath_Flash);
+                buildSuccess &= RunCompc(context, context.CompcConfigPathFlash);
                 PatchFlashSWC(context);
                 if (context.SwcProjectSettings.LaunchAEM)
                 {
@@ -118,10 +116,6 @@ namespace ExportSWC.Compiling
         }
 
         public void Compile(AS3Project project, SWCProject swcProjectSettings)
-        {
-            Compile(project, swcProjectSettings, null);
-        }
-        public void Compile(AS3Project project, SWCProject swcProjectSettings, ITraceable tracer)
         {
             if (_running)
             {
@@ -147,11 +141,6 @@ namespace ExportSWC.Compiling
         }
 
         public void PreBuild(AS3Project project, SWCProject swcProjectSettings)
-        {
-            PreBuild(project, swcProjectSettings, null);
-        }
-
-        public void PreBuild(AS3Project project, SWCProject swcProjectSettings, ITraceable tracer)
         {
             if (_running)
             {
@@ -259,7 +248,7 @@ namespace ExportSWC.Compiling
         protected void PatchFlashSWC(CompileContext context)
         {
             var livePreviewFile = false;
-            var file = context.CompcBinPath_Flash;
+            var file = context.CompcOutputPathFlash;
             var swcProjectSettings = context.SwcProjectSettings;
 
             if (!File.Exists(file))
@@ -426,37 +415,37 @@ namespace ExportSWC.Compiling
                 return string.Empty;
             }
 
-            var tproFile = TempFile(context.ProjectFullPath, ".as3proj");
-            var tswfFile = TempFile(context.ProjectFullPath, ".swf");
+            var tempProjectFile = TempFile(context.ProjectFullPath, ".as3proj");
+            var tempSwfFile = TempFile(context.ProjectFullPath, ".swf");
 
-            var lpc = new XmlDocument();
-            lpc.Load(project.ProjectPath);
+            var projectXml = new XmlDocument();
+            projectXml.Load(project.ProjectPath);
 
-            var opnl = lpc.DocumentElement["output"].ChildNodes;
+            var opnl = projectXml.DocumentElement["output"].ChildNodes;
             foreach (XmlNode node in opnl)
             {
                 if (node.Attributes[0].Name == "path")
                 {
-                    node.Attributes[0].Value = Path.GetFileName(tswfFile);
+                    node.Attributes[0].Value = Path.GetFileName(tempSwfFile);
                 }
             }
 
-            lpc.DocumentElement["compileTargets"].RemoveAll();
-            var el = lpc.DocumentElement["compileTargets"].CreateElement("compile");
+            projectXml.DocumentElement["compileTargets"].RemoveAll();
+            var el = projectXml.DocumentElement["compileTargets"].CreateElement("compile");
             el.SetAttribute("path", FindClassPath(context, swcProjectSettings.CS3PreviewResource));
 
-            lpc.Save(tproFile);
+            projectXml.Save(tempProjectFile);
 
-            var fdBuildDir = Path.Combine(PathHelper.ToolDir, "fdbuild");
-            var fdBuildPath = Path.Combine(fdBuildDir, "fdbuild.exe");
+            var fdBuildDirectory = Path.Combine(PathHelper.ToolDir, "fdbuild");
+            var fdBuildFilepath = Path.Combine(fdBuildDirectory, "fdbuild.exe");
 
-            var arguments = "\"" + tproFile + "\"";
+            var arguments = $@"""{tempProjectFile}""";
 
-            arguments += " -library \"" + PathHelper.LibraryDir + "\"";
-            arguments += " -compiler \"" + context.FlexSdkBase + "\"";
+            arguments += $@" -library ""{PathHelper.LibraryDir}""";
+            arguments += $@" -compiler ""{context.SdkBase}""";
 
             var fdp = new ProcessRunnerExtended();
-            fdp.Run(fdBuildPath, arguments, env);
+            fdp.Run(fdBuildFilepath, arguments, env);
 
             while (fdp.IsRunning)
             {
@@ -464,14 +453,14 @@ namespace ExportSWC.Compiling
                 Application.DoEvents();
             }
 
-            File.Delete(tproFile);
-            var tcon = project.Directory.TrimEnd('\\') + "\\obj\\" + Path.GetFileNameWithoutExtension(tproFile) + "Config.xml";
+            File.Delete(tempProjectFile);
+            var tcon = $@"{project.Directory.TrimEnd('\\')}\obj\{Path.GetFileNameWithoutExtension(tempProjectFile)}Config.xml";
             if (File.Exists(tcon))
             {
                 File.Delete(tcon);
             }
 
-            return tswfFile;
+            return tempSwfFile;
         }
 
         protected string FindClassPath(CompileContext context, string className)
@@ -488,10 +477,8 @@ namespace ExportSWC.Compiling
                 {
                     if (Path.GetFileNameWithoutExtension(file) == className)
                     {
-                        return (Path.GetDirectoryName(file).TrimEnd('\\')
-                            + "\\" + className + ".as")
-                            .Replace(_project.Directory.TrimEnd('\\')
-                            + "\\", "");
+                        var fullFilepath = $"{Path.GetDirectoryName(file).TrimEnd('\\')}\\{className}.as";
+                        return fullFilepath.Replace($"{_project.Directory.TrimEnd('\\')}\\", "");
                     }
                 }
             }
@@ -501,7 +488,7 @@ namespace ExportSWC.Compiling
 
         private string TempFile(string path, string ext)
         {
-            path = path.TrimEnd('\\') + "\\";
+            path = $"{path.TrimEnd('\\')}\\";
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
@@ -544,19 +531,20 @@ namespace ExportSWC.Compiling
         {
             var project = context.Project;
             var projectFullPath = context.ProjectFullPath;
-            var flexSdkBase = context.FlexSdkBase;
+            var sdkBase = context.SdkBase;
             var swcProjectSettings = context.SwcProjectSettings;
-            //var flexSdkVersion = context.FlexSdkVersion;
 
             var env = new Dictionary<string, string>();
 
             // Apache Flex compat
             env.SetApacheFlexCompatibilityEnvironment(context.Project);
-
+            
+            var checkForIllegalCrossThreadCalls = Control.CheckForIllegalCrossThreadCalls;
+            
             try
             {
                 // get the project root and compc.exe location from the command argument
-                var compc = PathUtils.GetExeOrBatPath(Path.Combine(flexSdkBase, "bin", "compc.exe"));
+                var compc = PathUtils.GetExeOrBatPath(Path.Combine(sdkBase, "bin", "compc.exe"));
                 if (!Directory.Exists(projectFullPath) | !compc.Exists)
                 {
                     throw new FileNotFoundException("Project or compc.exe not found", projectFullPath + "|" + compc.FullName);
@@ -568,14 +556,11 @@ namespace ExportSWC.Compiling
                     cmdArgs += " -load-config+=\"" + project.CompilerOptions.LoadConfig + "\"";
                 }
 
-                /* changed for new project manager core */
-                //if (Project.CompilerOptions.Additional != string.Empty)
-                //cmdArgs += " " + Project.CompilerOptions.Additional;
                 if (project.CompilerOptions.Additional.Length > 0)
                 {
-                    foreach (var op in project.CompilerOptions.Additional)
+                    foreach (var additionalOption in project.CompilerOptions.Additional)
                     {
-                        cmdArgs += " " + op;
+                        cmdArgs += $" {additionalOption}";
                     }
                 }
 
@@ -591,10 +576,9 @@ namespace ExportSWC.Compiling
                 process.Run(compc.FullName, cmdArgs, env);
 
                 PluginBase.MainForm.StatusLabel.Text = process.IsRunning ? "Build started..." : "Unable to start build. Check output.";
-                //TraceManager.Add((process.IsRunning ? "Running Process:" : "Unable to run Process:"));				
-                //TraceManager.Add("\"" + compc.FullName + "\" " + cmdArgs);
+                
                 WriteLine(process.IsRunning ? "Running Process:" : "Unable to run Process:");
-                WriteLine("\"" + compc.FullName + "\" " + cmdArgs);
+                WriteLine($@"""{compc.FullName}"" {cmdArgs}");
 
                 while (process.IsRunning)
                 {
@@ -602,7 +586,8 @@ namespace ExportSWC.Compiling
                     Application.DoEvents();
                 }
 
-                var checkForIllegalCrossThreadCalls = Control.CheckForIllegalCrossThreadCalls;
+                var success = process.HostedProcess.ExitCode == 0;
+
                 Control.CheckForIllegalCrossThreadCalls = false;
 
                 // Include AsDoc if FlexSdkVersion >= 4
@@ -612,43 +597,42 @@ namespace ExportSWC.Compiling
                     var generator = new AsDocGenerator(_tracer);
                     var asDocContext = new AsDocContext
                     {
-                        FlashPlayerTargetVersion = context.FlashPlayerTargetVersion,
+                        TargetVersion = context.TargetVersion,
                         FlexIgnoreClasses = swcProjectSettings.FlexIgnoreClasses,
-                        FlexOutputPath = context.CompcBinPath_Flex,
-                        FlexSdkBase = flexSdkBase,
-                        AirSdkBase = context.AirSdkBase,
+                        FlexOutputPath = context.CompcOutputPathFlex,
+                        SdkBase = sdkBase,
                         IsAir = context.IsAir,
                         Project = project
                     };
                     _anyErrors |= generator.IncludeAsDoc(asDocContext) == false;
                 }
 
-                if (!_anyErrors)
+                success = success && !_anyErrors;
+
+                if (success)
                 {
                     PluginBase.MainForm.StatusLabel.Text = "Build Successful.";
-                    //TraceManager.AddAsync(string.Format("Build Successful ({0}).\n", process.HostedProcess.ExitCode), 2);
-                    WriteLine(string.Format("Build Successful ({0}).\n", process.HostedProcess.ExitCode), TraceMessageType.Message);
+                    WriteLine($"Build Successful ({process.HostedProcess.ExitCode}).\n", TraceMessageType.Message);
                 }
                 else
                 {
                     PluginBase.MainForm.StatusLabel.Text = "Build failed.";
-                    //TraceManager.AddAsync(string.Format("Build failed ({0}).\n", process.HostedProcess.ExitCode), 2);
-                    WriteLine(string.Format(string.Format("Build failed ({0}).\n", process.HostedProcess.ExitCode)), TraceMessageType.Error);
+                    WriteLine($"Build failed ({process.HostedProcess.ExitCode}).\n", TraceMessageType.Error);
                 }
 
-                Control.CheckForIllegalCrossThreadCalls = checkForIllegalCrossThreadCalls;
-
-                return _anyErrors == false & process.HostedProcess.ExitCode == 0;
+                return success;
             }
             catch (Exception ex)
             {
                 // somethings happened, report it
-                //TraceManager.Add("*** Unable to build SWC: " + ex.Message);
-                //TraceManager.Add(ex.StackTrace);
-                WriteLine("*** Unable to build SWC: " + ex.Message, TraceMessageType.Error);
+                WriteLine($"*** Unable to build SWC: {ex.Message}", TraceMessageType.Error);
                 WriteLine(ex.StackTrace, TraceMessageType.Message);
 
                 return false;
+            }
+            finally
+            {
+                Control.CheckForIllegalCrossThreadCalls = checkForIllegalCrossThreadCalls;
             }
         }
 
@@ -663,7 +647,7 @@ namespace ExportSWC.Compiling
             var ne = new NotifyEvent(EventType.ProcessStart);
             EventManager.DispatchEvent(this, ne);
 
-            CreateCompcConfig(context, context.CompcConfigPath_Flex, context.CompcBinPath_Flex, true, context.SwcProjectSettings.FlexIgnoreClasses);
+            CreateCompcConfig(context, context.CompcConfigPathFlex, context.CompcOutputPathFlex, true, context.SwcProjectSettings.FlexIgnoreClasses);
             if (swcProjectSettings.FlexIncludeASI)
             {
                 PreBuild_Asi(context);
@@ -671,10 +655,11 @@ namespace ExportSWC.Compiling
 
             if (swcProjectSettings.MakeCS3)
             {
-                CreateCompcConfig(context, context.CompcConfigPath_Flash, context.CompcBinPath_Flash, false, swcProjectSettings.CS3IgnoreClasses);
+                CreateCompcConfig(context, context.CompcConfigPathFlash, context.CompcOutputPathFlash, false, swcProjectSettings.CS3IgnoreClasses);
                 if (swcProjectSettings.MakeMXI)
                 {
-                    if (swcProjectSettings.MXPIncludeASI && !swcProjectSettings.FlexIncludeASI)
+                    if (swcProjectSettings.MXPIncludeASI &&
+                        !swcProjectSettings.FlexIncludeASI)
                     {
                         PreBuild_Asi(context);
                     }
@@ -700,8 +685,8 @@ namespace ExportSWC.Compiling
             {
                 // TODO: Is this trying to get absolute path?
                 var rpath = path.Contains(":")
-                    ? path.Trim('\\') + "\\"
-                    : (project.Directory + "\\" + path.Trim('\\') + "\\").Replace("\\\\", "\\");
+                    ? $@"{path.Trim('\\')}\"
+                    : $@"{project.Directory}\{path.Trim('\\')}\".Replace(@"\\", @"\");
                 asfiles.AddRange(Directory.GetFiles(rpath, "*.as", SearchOption.AllDirectories));
             }
 
@@ -713,23 +698,23 @@ namespace ExportSWC.Compiling
 
         protected void MakeIntrinsic(string infile, string outdir)
         {
-            var aFile = ASFileParser.ParseFile(new FileModel(infile)
+            var asFile = ASFileParser.ParseFile(new FileModel(infile)
             {
                 Context = ASContext.Context
             });
-            if (aFile.Version == 0)
+            if (asFile.Version == 0)
             {
                 return;
             }
 
-            var code = aFile.GenerateIntrinsic(false);
+            var code = asFile.GenerateIntrinsic(false);
 
             try
             {
-                var dest = outdir.Trim('\\') + "\\";
-                dest += aFile.Package.Length < 1
-                    ? aFile.Classes[0].Name
-                    : aFile.Package + "." + aFile.Classes[0].Name;
+                var dest = $@"{outdir.Trim('\\')}\";
+                dest += asFile.Package.Length < 1
+                    ? asFile.Classes[0].Name
+                    : asFile.Package + "." + asFile.Classes[0].Name;
                 dest += ".asi";
 
                 File.WriteAllText(dest, code, Encoding.UTF8);
@@ -747,7 +732,7 @@ namespace ExportSWC.Compiling
             var outfile = context.MXIPath;
 
             var doc = new XmlDocument();
-            doc.LoadXml("<?xml version=\"1.0\" encoding=\"UTF-8\" ?><macromedia-extension />");
+            doc.LoadXml("""<?xml version="1.0" encoding="UTF-8" ?><macromedia-extension />""");
             doc.DocumentElement.SetAttribute("name", swcProjectSettings.CS3ComponentName);
 
             swcProjectSettings.IncrementVersion(0, 0, 1);
@@ -767,18 +752,18 @@ namespace ExportSWC.Compiling
             pro.SetAttribute("primary", "true");
 
             var fil = doc.DocumentElement.CreateElement("files").CreateElement("file");
-            fil.SetAttribute("name", Path.GetFileName(context.CompcBinPath_Flash));
+            fil.SetAttribute("name", Path.GetFileName(context.CompcOutputPathFlash));
             fil.SetAttribute("destination", "$flash/Components/" + swcProjectSettings.CS3ComponentGroup);
 
             doc.Save(outfile);
         }
 
-        protected void CreateCompcConfig(CompileContext context, string confout, string binout, bool rsl, List<string> classExclusions)
+        protected void CreateCompcConfig(CompileContext context, string configFilepath, string outputFilepath, bool isRuntimeSharedLibrary, List<string> classExclusions)
         {
             var project = context.Project;
 
             //TraceManager.Add("Prebuilding config " + confout + "...");
-            WriteLine("Prebuilding config " + confout + "...");
+            WriteLine("Prebuilding config " + configFilepath + "...");
 
             // build the config file
             var config = new XmlDocument();
@@ -787,14 +772,14 @@ namespace ExportSWC.Compiling
 
             // general options...
             // output
-            config.DocumentElement.CreateElement("output", binout);
+            config.DocumentElement.CreateElement("output", outputFilepath);
 
             // use-network
             config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
 
             // If Air is used, target version is AIR version
             // target
-            config.DocumentElement.CreateElement("target-player", context.FlashPlayerTargetVersion);
+            config.DocumentElement.CreateElement("target-player", context.TargetVersion);
 
             // warnings
             config.DocumentElement.CreateElement("warnings", project.CompilerOptions.Warnings.ToString().ToLower());
@@ -823,7 +808,7 @@ namespace ExportSWC.Compiling
             var compiler = config.DocumentElement.CreateElement("compiler", null);
 
             // compute-digest
-            if (!rsl)
+            if (!isRuntimeSharedLibrary)
             {
                 config.DocumentElement.CreateElement("compute-digest", "false");
             }
@@ -921,9 +906,9 @@ namespace ExportSWC.Compiling
 
             // add namespace, save config to obj folder
             config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
-            config.Save(confout);
+            config.Save(configFilepath);
             //TraceManager.AddAsync("Configuration writen to: " + confout, 2);
-            WriteLine("Configuration writen to: " + confout);
+            WriteLine("Configuration writen to: " + configFilepath);
 
         }
 

@@ -15,7 +15,7 @@ namespace ExportSWC
 
             try
             {
-                _compiler.Build(CurrentProject, CurrentSwcProject, _tracer);
+                _compiler.Build(CurrentProject, CurrentSwcProject);
             }
             finally
             {
@@ -25,12 +25,12 @@ namespace ExportSWC
 
         protected void PreBuildClick(object sender, EventArgs e)
         {
-            _compiler.PreBuild(CurrentProject, CurrentSwcProject, _tracer);
+            _compiler.PreBuild(CurrentProject, CurrentSwcProject);
         }
 
         protected void CompileClick(object sender, EventArgs e)
         {
-            _compiler.Compile(CurrentProject, CurrentSwcProject, _tracer);
+            _compiler.Compile(CurrentProject, CurrentSwcProject);
         }
     }
 }
