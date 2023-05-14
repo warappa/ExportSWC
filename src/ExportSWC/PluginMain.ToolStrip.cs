@@ -8,7 +8,7 @@ using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
-    internal partial class PluginMain
+    public partial class PluginMain
     {
         /// <summary>
         /// Creates a menu item for the plugin and adds a ignored key

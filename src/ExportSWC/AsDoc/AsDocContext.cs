@@ -17,5 +17,6 @@ namespace ExportSWC.AsDoc
         public string FlashPlayerTargetVersion { get; set; }
         public List<string> FlexIgnoreClasses { get; set; } = new List<string>();
         public string FlexOutputPath { get; set; }
+        public string AirSdkBase { get; internal set; }
     }
 }

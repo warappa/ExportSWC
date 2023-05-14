@@ -2,7 +2,7 @@
 
 namespace ExportSWC
 {
-    internal partial class PluginMain
+    public partial class PluginMain
     {
         /// <summary>
         /// Main method for plugin - Export SWC using compc.exe

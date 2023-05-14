@@ -11,7 +11,9 @@ namespace ExportSWC.Compiling
     {
         private string _projectFullPath;
         private string _flexSdkBase;
+        private string _airSdkBase;
         private Version _flexSdkVersion;
+        private Version _airSdkVersion;
 
         public AS3Project Project { get; set; }
         public SWCProject SwcProjectSettings { get; set; }
@@ -23,6 +25,8 @@ namespace ExportSWC.Compiling
         /// The Flex SDK base path.
         /// </summary>
         public string FlexSdkBase => _flexSdkBase ??= BuildActions.GetCompilerPath(Project);
+
+        public string AirSdkBase => _airSdkBase ??= GetAirSdkBase();
 
         public bool IsAir => ExtractPlatform() == "AIR";
 
@@ -43,10 +47,35 @@ namespace ExportSWC.Compiling
             return platform;
         }
 
+        private string GetAirSdkBase()
+        {
+            var airSdk = BuildActions.GetCompilerPath(Project);
+
+            if (!ContainsAirConfig(airSdk))
+            {
+                var sdks = BuildActions.GetInstalledSDKs(Project);
+                foreach (var sdk in sdks)
+                {
+                    if (ContainsAirConfig(sdk.Path))
+                    {
+                        airSdk = sdk.Path;
+                        break;
+                    }
+                }
+            }
+
+            return airSdk;
+        }
+
+        private static bool ContainsAirConfig(string sdkPath)
+        {
+            return File.Exists(Path.Combine(sdkPath, "air-sdk-description.xml"));
+        }
+
         /// <summary>
         /// The Flex SDK Version.
         /// </summary>
-        public Version FlexSdkVersion
+        public Version? FlexSdkVersion
         {
             get
             {
@@ -76,6 +105,44 @@ namespace ExportSWC.Compiling
         }
 
         /// <summary>
+        /// The Flex SDK Version.
+        /// </summary>
+        public Version? AirSdkVersion
+        {
+            get
+            {
+                if (_airSdkVersion is not null)
+                {
+                    return _airSdkVersion;
+                }
+                else
+                {
+                    var airSdkDescriptionPath = Path.Combine(FlexSdkBase, "air-sdk-description.xml");
+                    if (!File.Exists(airSdkDescriptionPath))
+                    {
+                        return null;
+                    }
+
+                    var doc = new XmlDocument();
+                    doc.Load(airSdkDescriptionPath);
+
+                    var versionNode = doc.SelectSingleNode("air-sdk-description/version");
+                    var buildNode = doc.SelectSingleNode("air-sdk-description/build");
+
+                    var versionParts = versionNode.InnerText.Split(new char[] { '.' },
+                                                                        StringSplitOptions.RemoveEmptyEntries);
+
+                    _airSdkVersion = new Version(int.Parse(versionParts[0]),
+                                                  int.Parse(versionParts[1]),
+                                                  int.Parse(versionParts[2]),
+                                                  int.Parse(buildNode.InnerText));
+
+                    return _airSdkVersion;
+                }
+            }
+        }
+
+        /// <summary>
         /// Checks if AsDoc integration is available.
         /// </summary>
         public bool IsAsDocIntegrationAvailable
@@ -83,7 +150,11 @@ namespace ExportSWC.Compiling
             get
             {
                 // Patch: Use custom SDK path (if available)
-                if (FlexSdkVersion.Major >= 4)
+                if (!IsAir && FlexSdkVersion.Major >= 4)
+                {
+                    return true;
+                }
+                else if (IsAir) //???
                 {
                     return true;
                 }
@@ -102,7 +173,7 @@ namespace ExportSWC.Compiling
                     Directory.CreateDirectory(p);
                 }
 
-                return p;
+                return $@"{p}\";
             }
         }
 

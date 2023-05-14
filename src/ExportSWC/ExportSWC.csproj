@@ -5,7 +5,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <LangVersion>latest</LangVersion>
-    <OutputPath>..\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
+    <OutputPath>..\FlashDevelop\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <NoWarn>$(NoWarn);MSB3270</NoWarn>
   </PropertyGroup>
 
@@ -17,7 +18,7 @@
     <AssemblyTitle>ExportSWC</AssemblyTitle>
     <AssemblyVersion>4.3.0</AssemblyVersion>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <Deterministic>false</Deterministic>
+    <Deterministic>false</Deterministic>    
   </PropertyGroup>
 
   <ItemGroup>

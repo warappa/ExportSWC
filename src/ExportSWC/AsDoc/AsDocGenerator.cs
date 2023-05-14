@@ -7,6 +7,7 @@ using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
 using ExportSWC.Utils;
 using ICSharpCode.SharpZipLib.Zip;
+using PluginCore;
 using PluginCore.Utilities;
 
 namespace ExportSWC.AsDoc
@@ -22,16 +23,25 @@ namespace ExportSWC.AsDoc
 
         public bool IncludeAsDoc(AsDocContext context)
         {
+            WriteLine("");
+            WriteLine("Building AsDoc", TraceMessageType.Message);
+            if (!File.Exists(context.FlexOutputPath))
+            {
+                WriteLine($"File '{context.FlexOutputPath}' not found");
+                return false;
+            }
+
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
 
             var arguments = BuildAsDocArguments(context, tempPath);
 
-            WriteLine("Building AsDoc");
+            
             WriteLine("AsDoc temp output: " + tempPath);
 
-
-            var asDocPath = Path.Combine(context.FlexSdkBase, @"bin\asdoc.exe");
+            var sdkBase = context.IsAir ? context.AirSdkBase : context.FlexSdkBase;
+            
+            var asDocPath = Path.Combine(sdkBase, @"bin\asdoc.exe");
             var asdoc = PathUtils.GetExeOrBatPath(asDocPath);
             if (asdoc is null)
             {
@@ -40,7 +50,7 @@ namespace ExportSWC.AsDoc
 
             WriteLine($"Start AsDoc: {asdoc.FullName}\n{arguments}");
 
-            var success = RunAsDoc(arguments, asdoc, out var exitCode);
+            var success = RunAsDoc(context, tempPath, arguments, asdoc, out var exitCode);
 
             WriteLine($"AsDoc complete ({exitCode})", success ? TraceMessageType.Verbose : TraceMessageType.Error);
 
@@ -69,15 +79,21 @@ namespace ExportSWC.AsDoc
             return true;
         }
 
-        private bool RunAsDoc(string arguments, FileInfo asdoc, out int exitCode)
+        private bool RunAsDoc(AsDocContext context, string tempPath, string arguments, FileInfo asdoc, out int exitCode)
         {
-            var process = new ProcessRunner();
+            var project = context.Project;
+            var env = new Dictionary<string, string>();
+
+            // Apache Flex compat
+            env.SetApacheFlexCompatibilityEnvironment(context.Project);
+
+            var process = new ProcessRunnerExtended();
             process.Error += new LineOutputHandler(ProcessError);
             process.Output += new LineOutputHandler(ProcessOutput);
             //process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
             process.RedirectInput = true;
 
-            process.Run(asdoc.FullName, arguments);
+            process.Run(asdoc.FullName, arguments, env);
 
             while (process.IsRunning)
             {
@@ -88,6 +104,15 @@ namespace ExportSWC.AsDoc
             exitCode = process.HostedProcess.ExitCode;
 
             var success = exitCode == 0;
+
+            var validationErrorLogPath = Path.Combine(tempPath, "validation_errors.log");
+            if (File.Exists(validationErrorLogPath))
+            {
+                var content = File.ReadAllText(validationErrorLogPath);
+                WriteLine("");
+                WriteLine("Error details:", TraceMessageType.Error);
+                WriteLine(content, TraceMessageType.Error);
+            }
 
             return success;
         }
@@ -182,7 +207,13 @@ namespace ExportSWC.AsDoc
             else
             {
                 // the target-player
-                arguments += $"-target-player={context.FlashPlayerTargetVersion}";
+                arguments += $"-target-player={context.FlashPlayerTargetVersion} ";
+            }
+
+            // locale
+            if (!string.IsNullOrEmpty(context.Project.CompilerOptions.Locale))
+            {
+                arguments += $"-locale={context.Project.CompilerOptions.Locale}";
             }
 
             arguments = $@"-lenient=true -keep-xml=true -skip-xsl=true -output ""{tempPath}"" {arguments}";
@@ -257,7 +288,13 @@ namespace ExportSWC.AsDoc
         private void ProcessError(object sender, string line)
         {
             //TraceManager.AddAsync(line, 3);
-            WriteLine(line, TraceMessageType.Error);
+            var isError = line.StartsWithOrdinal("Error:");
+            var level = TraceMessageType.Warning;
+            if (isError)
+            {
+                level = TraceMessageType.Error;
+            }
+            WriteLine(line, level);
         }
 
         private void WriteLine(string msg)

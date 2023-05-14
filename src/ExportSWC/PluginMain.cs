@@ -17,7 +17,7 @@ using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
-    internal partial class PluginMain : IPlugin
+    public partial class PluginMain : IPlugin
     {
         private string settingFilename;
         private object settingObject;
@@ -39,8 +39,8 @@ namespace ExportSWC
         /* SWC project */
         private SWCProject CurrentSwcProject;
 
-        protected ITraceable _tracer;
-        protected SWCBuilder _compiler;
+        private ITraceable _tracer;
+        private SWCBuilder _compiler;
 
         /// <summary>
         /// The current AS3 project.

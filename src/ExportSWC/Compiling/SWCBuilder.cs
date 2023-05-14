@@ -43,9 +43,15 @@ namespace ExportSWC.Compiling
 
         private void ProcessError(object sender, string line)
         {
-            _anyErrors = true;
+            var isError = line.StartsWithOrdinal("Error:");
+            _anyErrors |= isError;
+            var level = TraceMessageType.Warning;
+            if (isError)
+            {
+                level = TraceMessageType.Error;
+            }
             //TraceManager.AddAsync(line, 3);
-            WriteLine(line, TraceMessageType.Error);
+            WriteLine(line, level);
         }
 
         /// <summary>
@@ -411,6 +417,10 @@ namespace ExportSWC.Compiling
             var swcProjectSettings = context.SwcProjectSettings;
             var project = context.Project;
 
+            var env = new Dictionary<string, string>();
+
+            env.SetApacheFlexCompatibilityEnvironment(context.Project);
+
             if (FindClassPath(context, swcProjectSettings.CS3PreviewResource) == string.Empty)
             {
                 return string.Empty;
@@ -445,8 +455,8 @@ namespace ExportSWC.Compiling
             arguments += " -library \"" + PathHelper.LibraryDir + "\"";
             arguments += " -compiler \"" + context.FlexSdkBase + "\"";
 
-            var fdp = new ProcessRunner();
-            fdp.Run(fdBuildPath, arguments);
+            var fdp = new ProcessRunnerExtended();
+            fdp.Run(fdBuildPath, arguments, env);
 
             while (fdp.IsRunning)
             {
@@ -536,23 +546,12 @@ namespace ExportSWC.Compiling
             var projectFullPath = context.ProjectFullPath;
             var flexSdkBase = context.FlexSdkBase;
             var swcProjectSettings = context.SwcProjectSettings;
-            var FlexSdkVersion = context.FlexSdkVersion;
+            //var flexSdkVersion = context.FlexSdkVersion;
+
+            var env = new Dictionary<string, string>();
 
             // Apache Flex compat
-            if (project.Language == "as3")
-            {
-                var setPlayerglobalHomeEnv = false;
-                var playerglobalHome = Environment.ExpandEnvironmentVariables("%PLAYERGLOBAL_HOME%");
-                if (playerglobalHome.StartsWith('%'))
-                {
-                    setPlayerglobalHomeEnv = true;
-                }
-
-                if (setPlayerglobalHomeEnv)
-                {
-                    Environment.SetEnvironmentVariable("PLAYERGLOBAL_HOME", Path.Combine(project.CurrentSDK, "frameworks/libs/player"));
-                }
-            }
+            env.SetApacheFlexCompatibilityEnvironment(context.Project);
 
             try
             {
@@ -583,12 +582,13 @@ namespace ExportSWC.Compiling
                 _anyErrors = false;
 
                 // start the compc.exe process with arguments
-                var process = new ProcessRunner();
+                var process = new ProcessRunnerExtended();
                 process.Error += new LineOutputHandler(ProcessError);
                 process.Output += new LineOutputHandler(ProcessOutput);
                 //process.WorkingDirectory = ProjectPath.FullName; // commented out as supposed by i.o. (http://www.flashdevelop.org/community/viewtopic.php?p=36764#p36764)
                 process.RedirectInput = true;
-                process.Run(compc.FullName, cmdArgs);
+
+                process.Run(compc.FullName, cmdArgs, env);
 
                 PluginBase.MainForm.StatusLabel.Text = process.IsRunning ? "Build started..." : "Unable to start build. Check output.";
                 //TraceManager.Add((process.IsRunning ? "Running Process:" : "Unable to run Process:"));				
@@ -607,7 +607,7 @@ namespace ExportSWC.Compiling
 
                 // Include AsDoc if FlexSdkVersion >= 4
                 if (swcProjectSettings.IntegrateAsDoc &&
-                    FlexSdkVersion.Major >= 4)
+                    context.IsAsDocIntegrationAvailable)
                 {
                     var generator = new AsDocGenerator(_tracer);
                     var asDocContext = new AsDocContext
@@ -616,6 +616,7 @@ namespace ExportSWC.Compiling
                         FlexIgnoreClasses = swcProjectSettings.FlexIgnoreClasses,
                         FlexOutputPath = context.CompcBinPath_Flex,
                         FlexSdkBase = flexSdkBase,
+                        AirSdkBase = context.AirSdkBase,
                         IsAir = context.IsAir,
                         Project = project
                     };
@@ -653,6 +654,9 @@ namespace ExportSWC.Compiling
 
         protected void PreBuild(CompileContext context)
         {
+            WriteLine("");
+            WriteLine("PreBuild", TraceMessageType.Message);
+
             var swcProjectSettings = context.SwcProjectSettings;
 
             //Clear Outputpanel
@@ -789,19 +793,18 @@ namespace ExportSWC.Compiling
             config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
 
             // If Air is used, target version is AIR version
-            if (!context.IsAir)
-            {
-                // target
-                config.DocumentElement.CreateElement("target-player", context.FlashPlayerTargetVersion);
-            }
+            // target
+            config.DocumentElement.CreateElement("target-player", context.FlashPlayerTargetVersion);
+
             // warnings
             config.DocumentElement.CreateElement("warnings", project.CompilerOptions.Warnings.ToString().ToLower());
 
-            // locale
-            if (project.CompilerOptions.Locale != string.Empty)
-            {
-                config.DocumentElement.CreateElement("locale", project.CompilerOptions.Locale);
-            }
+            //// locale
+            //if (!context.IsAir &&
+            //    project.CompilerOptions.Locale != string.Empty)
+            //{
+            //    config.DocumentElement.CreateElement("locale", project.CompilerOptions.Locale);
+            //}
 
             // runtime-shared-libraries
             if (project.CompilerOptions.RSLPaths.Length > 0)
@@ -928,6 +931,13 @@ namespace ExportSWC.Compiling
         {
             // take the current folder
             var directory = new DirectoryInfo(sourcePath);
+
+            if (!directory.Exists)
+            {
+                WriteLine($"Path '{sourcePath}' does not exist - skipped", TraceMessageType.Warning);
+                return;
+            }
+
             // add every AS class to the manifest
             foreach (var file in directory.GetFiles())
             {
@@ -963,4 +973,5 @@ namespace ExportSWC.Compiling
             _tracer.WriteLine(msg, messageType);
         }
     }
+
 }

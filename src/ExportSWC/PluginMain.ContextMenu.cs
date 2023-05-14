@@ -8,7 +8,7 @@ using System.Drawing;
 
 namespace ExportSWC
 {
-    internal partial class PluginMain
+    public partial class PluginMain
     {
         private void InjectContextMenuItems(ProjectTreeView tree)
         {
