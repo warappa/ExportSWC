@@ -538,9 +538,9 @@ namespace ExportSWC.Compiling
 
             // Apache Flex compat
             env.SetApacheFlexCompatibilityEnvironment(context.Project);
-            
+
             var checkForIllegalCrossThreadCalls = Control.CheckForIllegalCrossThreadCalls;
-            
+
             try
             {
                 // get the project root and compc.exe location from the command argument
@@ -549,11 +549,16 @@ namespace ExportSWC.Compiling
                 {
                     throw new FileNotFoundException("Project or compc.exe not found", projectFullPath + "|" + compc.FullName);
                 }
+
+                var cmdArgs = "";
+                // prevent flaky builds by specifying configname explicitly
+                cmdArgs += $"+configname={(context.IsAir ? "air" : "flex")}";
+
                 // generate arguments based on config, additional configs, and additional user arguments
-                var cmdArgs = "-load-config+=\"" + confpath + "\"";
+                cmdArgs += $@" -load-config+=""{confpath}""";
                 if (project.CompilerOptions.LoadConfig != string.Empty)
                 {
-                    cmdArgs += " -load-config+=\"" + project.CompilerOptions.LoadConfig + "\"";
+                    cmdArgs += $@" -load-config+=""{project.CompilerOptions.LoadConfig}""";
                 }
 
                 if (project.CompilerOptions.Additional.Length > 0)
@@ -576,7 +581,7 @@ namespace ExportSWC.Compiling
                 process.Run(compc.FullName, cmdArgs, env);
 
                 PluginBase.MainForm.StatusLabel.Text = process.IsRunning ? "Build started..." : "Unable to start build. Check output.";
-                
+
                 WriteLine(process.IsRunning ? "Running Process:" : "Unable to run Process:");
                 WriteLine($@"""{compc.FullName}"" {cmdArgs}");
 
