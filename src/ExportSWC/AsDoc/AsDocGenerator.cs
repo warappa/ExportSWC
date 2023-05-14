@@ -24,7 +24,7 @@ namespace ExportSWC.AsDoc
         public bool IncludeAsDoc(AsDocContext context)
         {
             WriteLine("");
-            WriteLine("Building AsDoc", TraceMessageType.Message);
+            WriteLine("Building documentation", TraceMessageType.Message);
             if (!File.Exists(context.FlexOutputPath))
             {
                 WriteLine($"File '{context.FlexOutputPath}' not found");
@@ -36,31 +36,31 @@ namespace ExportSWC.AsDoc
 
             var arguments = BuildAsDocArguments(context, tempPath);
 
-            
-            WriteLine("AsDoc temp output: " + tempPath);
+
+            WriteLine("asdoc temp output: " + tempPath);
 
             var asDocPath = Path.Combine(context.SdkBase, @"bin\asdoc.exe");
             var asdoc = PathUtils.GetExeOrBatPath(asDocPath)
                 ?? throw new FileNotFoundException("asdoc not found", asDocPath);
 
-            WriteLine($"Start AsDoc: {asdoc.FullName}\n{arguments}");
+            WriteLine($"Start asdoc: {asdoc.FullName}\n{arguments}");
 
             var success = RunAsDoc(context, tempPath, arguments, asdoc, out var exitCode);
 
-            WriteLine($"AsDoc complete ({exitCode})", success ? TraceMessageType.Verbose : TraceMessageType.Error);
+            WriteLine($"asdoc complete ({exitCode})", success ? TraceMessageType.Verbose : TraceMessageType.Error);
 
             if (!success)
             {
                 return false;
             }
 
-            WriteLine("AsDoc created successfully, including in SWC...");
+            WriteLine("asdoc created successfully, including in SWC...");
 
             try
             {
                 MergeAsDocIntoSWC(tempPath, context.FlexOutputPath);
 
-                WriteLine($"AsDoc integration complete ({exitCode})",
+                WriteLine($"asdoc integration complete ({exitCode})",
                     success ? TraceMessageType.Verbose : TraceMessageType.Error);
             }
             catch (Exception exc)
@@ -90,11 +90,15 @@ namespace ExportSWC.AsDoc
 
             process.Run(asdoc.FullName, arguments, env);
 
+            WriteLine("");
+
             while (process.IsRunning)
             {
                 Thread.Sleep(5);
                 Application.DoEvents();
             }
+
+            WriteLine("");
 
             exitCode = process.HostedProcess!.ExitCode;
 
@@ -197,7 +201,7 @@ namespace ExportSWC.AsDoc
 
             //if (context.IsAir)
             {
-                arguments += $"+configname={ (context.IsAir ? "air" : "flex") } ";
+                arguments += $"+configname={(context.IsAir ? "air" : "flex")} ";
             }
             //else
             {
@@ -254,7 +258,7 @@ namespace ExportSWC.AsDoc
             // add every AS class
             foreach (var file in directory.GetFiles())
             {
-                if (file.Extension is 
+                if (file.Extension is
                     ".as" or
                     ".mxml")
                 {
@@ -277,7 +281,7 @@ namespace ExportSWC.AsDoc
 
         private void ProcessOutput(object sender, string line)
         {
-            //TraceManager.AddAsync(line);
+            WriteLine($"  asdoc: {line}", TraceMessageType.Verbose);
         }
 
         private void ProcessError(object sender, string line)
@@ -289,7 +293,7 @@ namespace ExportSWC.AsDoc
             {
                 level = TraceMessageType.Error;
             }
-            WriteLine(line, level);
+            WriteLine($"  asdoc: {line}", level);
         }
 
         private void WriteLine(string msg)

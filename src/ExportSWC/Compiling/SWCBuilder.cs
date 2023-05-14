@@ -74,9 +74,15 @@ namespace ExportSWC.Compiling
 
             RunPreBuildEvent(context);
 
+            WriteLine("");
+            WriteLine("Compile Flex SWC", TraceMessageType.Message);
+
             buildSuccess &= RunCompc(context, context.CompcConfigPathFlex);
             if (context.SwcProjectSettings.MakeCS3)
             {
+                WriteLine("");
+                WriteLine("Compile Flash SWC", TraceMessageType.Message);
+
                 buildSuccess &= RunCompc(context, context.CompcConfigPathFlash);
                 PatchFlashSWC(context);
                 if (context.SwcProjectSettings.LaunchAEM)
@@ -170,6 +176,9 @@ namespace ExportSWC.Compiling
                 return;
             }
 
+            WriteLine("");
+            WriteLine("Run post-build", TraceMessageType.Message);
+
             var command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(context.Project.PostBuildEvent, true);
 
             var process = new Process();
@@ -204,6 +213,9 @@ namespace ExportSWC.Compiling
 
         protected bool BuildMXP(CompileContext context)
         {
+            WriteLine("");
+            WriteLine("Build MXP", TraceMessageType.Message);
+
             var pi = new ProcessStartInfo
             {
                 UseShellExecute = true,
@@ -218,6 +230,9 @@ namespace ExportSWC.Compiling
 
         protected void PatchFlashSWC(CompileContext context)
         {
+            WriteLine("");
+            WriteLine("Patch Flash SWC", TraceMessageType.Message);
+
             var livePreviewFile = false;
             var file = context.CompcOutputPathFlash;
             var swcProjectSettings = context.SwcProjectSettings;
@@ -559,12 +574,14 @@ namespace ExportSWC.Compiling
                 WriteLine(process.IsRunning ? "Running Process:" : "Unable to run Process:");
                 WriteLine($@"""{compc.FullName}"" {cmdArgs}");
 
+                WriteLine("");
+
                 while (process.IsRunning)
                 {
                     Thread.Sleep(5);
                     Application.DoEvents();
                 }
-
+                
                 var success = process.HostedProcess!.ExitCode == 0;
 
                 Control.CheckForIllegalCrossThreadCalls = false;
@@ -590,12 +607,12 @@ namespace ExportSWC.Compiling
                 if (success)
                 {
                     PluginBase.MainForm.StatusLabel.Text = "Build Successful.";
-                    WriteLine($"Build Successful ({process.HostedProcess.ExitCode}).\n", TraceMessageType.Message);
+                    WriteLine($"Build Successful ({process.HostedProcess.ExitCode}).", TraceMessageType.Message);
                 }
                 else
                 {
                     PluginBase.MainForm.StatusLabel.Text = "Build failed.";
-                    WriteLine($"Build failed ({process.HostedProcess.ExitCode}).\n", TraceMessageType.Error);
+                    WriteLine($"Build failed ({process.HostedProcess.ExitCode}).", TraceMessageType.Error);
                 }
 
                 return success;
@@ -617,7 +634,7 @@ namespace ExportSWC.Compiling
         protected void PreBuild(CompileContext context)
         {
             WriteLine("");
-            WriteLine("PreBuild", TraceMessageType.Message);
+            WriteLine("Run pre-build", TraceMessageType.Message);
 
             var swcProjectSettings = context.SwcProjectSettings;
 
@@ -924,7 +941,7 @@ namespace ExportSWC.Compiling
 
         private void ProcessOutput(object sender, string line)
         {
-            //TraceManager.AddAsync(line);
+            WriteLine($"  compc: {line}", TraceMessageType.Verbose);
         }
 
         private void ProcessError(object sender, string line)
@@ -937,7 +954,7 @@ namespace ExportSWC.Compiling
                 level = TraceMessageType.Error;
             }
             //TraceManager.AddAsync(line, 3);
-            WriteLine(line, level);
+            WriteLine($"  compc: {line}", level);
         }
 
         private void WriteLine(string msg)

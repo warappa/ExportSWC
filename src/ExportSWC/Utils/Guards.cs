@@ -12,7 +12,7 @@ namespace ExportSWC.Utils
             return EnsureNotNull(swcProject, "No current SWC project found");
         }
 
-        public static T EnsureNotNull<T>([NotNull] T? obj, [CallerArgumentExpression("obj")] string? message = null)
+        public static T EnsureNotNull<T>([NotNull] T? obj, [CallerArgumentExpression(nameof(obj))] string? message = null)
         {
             if (obj is null)
             {
