@@ -22,7 +22,10 @@ namespace ExportSWC.AsDoc
 {
     internal class AsDocGenerator
     {
+        private const int _asdocLineNumberReportCorrectionDivisor = 2;
+
         private readonly ITraceable _tracer;
+        private bool _anyErrors;
 
         public AsDocGenerator(ITraceable tracer)
         {
@@ -68,11 +71,13 @@ namespace ExportSWC.AsDoc
             {
                 MergeAsDocIntoSWC(tempPath, context.FlexOutputPath);
 
+                WriteLine("");
                 WriteLine($"asdoc integration complete ({exitCode})",
                     success ? TraceMessageType.Verbose : TraceMessageType.Error);
             }
             catch (Exception exc)
             {
+                WriteLine("");
                 WriteLine($"Integration error {exc.Message}", TraceMessageType.Error);
             }
 
@@ -110,7 +115,7 @@ namespace ExportSWC.AsDoc
 
             exitCode = process.HostedProcess!.ExitCode;
 
-            var success = exitCode == 0;
+            var success = exitCode == 0 && !_anyErrors;
 
             var validationErrorLogPath = Path.Combine(tempPath, "validation_errors.log");
             if (File.Exists(validationErrorLogPath))
@@ -198,6 +203,7 @@ namespace ExportSWC.AsDoc
                             int.TryParse(exceptionMatch.Groups["linenumber"].Value, out var lineNumber);
                             var message = exceptionMatch.Groups["message"]?.Value;
                             var fileModel = ASContext.Context.GetFileModel(projectRelativeSource);
+                            var memberStart = 0;
 
                             if (fileModel is not null)
                             {
@@ -211,20 +217,21 @@ namespace ExportSWC.AsDoc
                                         if (memberModel is not null)
                                         {
                                             comments = memberModel.Comments;
-                                            lineNumber += memberModel.LineFrom + 1;
+                                            memberStart = memberModel.LineFrom + 1;
                                         }
                                     }
                                     else
                                     {
                                         comments = classModel.Comments;
-                                        lineNumber += classModel.LineFrom + 1;
+                                        memberStart = classModel.LineFrom + 1;
                                     }
                                 }
                                 var commentLines = comments.Where(x => x == '\r').Count() + 1;
-                                lineNumber -= commentLines;
+                                lineNumber = commentLines - lineNumber / _asdocLineNumberReportCorrectionDivisor;
+                                lineNumber = memberStart - lineNumber;
                             }
 
-                            var resultMessage = $"{projectRelativeSource}:{lineNumber}: {message}";
+                            var resultMessage = $"{projectRelativeSource}({lineNumber},{column}): {message}";
                             WriteLine(resultMessage, TraceMessageType.Error);
                         }
                         line = null;
@@ -353,6 +360,9 @@ namespace ExportSWC.AsDoc
 
         private void MergeAsDocIntoSWC(string tmpPath, string targetSwcFile)
         {
+            WriteLine("");
+            WriteLine("Merge documentation into SWC", TraceMessageType.Message);
+
             using var fsZip = new FileStream(targetSwcFile, FileMode.Open, FileAccess.ReadWrite); //CompcBinPath_Flex
             using var zipFile = new ZipFile(fsZip);
 
@@ -361,6 +371,8 @@ namespace ExportSWC.AsDoc
             AddContentsOfDirectory(zipFile, Path.Combine(tmpPath, "tempdita"), Path.Combine(tmpPath, "tempdita"), "docs");
 
             zipFile.CommitUpdate();
+
+            WriteLine("Merging complete", TraceMessageType.Verbose);
         }
 
         private void AddContentsOfDirectory(ZipFile zipFile, string path, string basePath, string prefix)
@@ -423,6 +435,7 @@ namespace ExportSWC.AsDoc
             if (isError)
             {
                 level = TraceMessageType.Error;
+                _anyErrors = true;
             }
             WriteLine($"  asdoc: {line}", level);
         }
@@ -431,6 +444,7 @@ namespace ExportSWC.AsDoc
         {
             WriteLine(msg, TraceMessageType.Verbose);
         }
+
         private void WriteLine(string msg, TraceMessageType messageType)
         {
             if (_tracer == null)

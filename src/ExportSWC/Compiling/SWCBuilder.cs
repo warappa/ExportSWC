@@ -57,8 +57,15 @@ namespace ExportSWC.Compiling
 
             try
             {
+                CleanupOutputFiles(context);
+
                 PreBuild(context);
-                Compile(context);
+                var success = Compile(context);
+
+                if (!success)
+                {
+                    CleanupOutputFiles(context);
+                }
             }
             finally
             {
@@ -66,7 +73,7 @@ namespace ExportSWC.Compiling
             }
         }
 
-        protected void Compile(CompileContext context)
+        protected bool Compile(CompileContext context)
         {
             var buildSuccess = true;
 
@@ -96,6 +103,8 @@ namespace ExportSWC.Compiling
             {
                 RunPostBuildEvent(context);
             }
+
+            return buildSuccess;
         }
 
         public void Compile(AS3Project project, SWCProject swcProjectSettings)
@@ -614,6 +623,8 @@ namespace ExportSWC.Compiling
                 {
                     PluginBase.MainForm.StatusLabel.Text = "Build failed.";
                     WriteLine($"Build failed ({process.HostedProcess.ExitCode}).", TraceMessageType.Error);
+
+                    CleanupOutputFiles(context);
                 }
 
                 return success;
@@ -629,6 +640,29 @@ namespace ExportSWC.Compiling
             finally
             {
                 Control.CheckForIllegalCrossThreadCalls = checkForIllegalCrossThreadCalls;
+            }
+        }
+
+        private void CleanupOutputFiles(CompileContext context)
+        {
+            try
+            {
+                if (File.Exists(context.CompcOutputPathFlex))
+                {
+                    File.Delete(context.CompcOutputPathFlex);
+                }
+
+                if (context.SwcProjectSettings.MakeCS3)
+                {
+                    if (File.Exists(context.CompcOutputPathFlash))
+                    {
+                        File.Delete(context.CompcOutputPathFlash);
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
             }
         }
 
