@@ -1,14 +1,22 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
+using System.Xml.Linq;
+using System.Xml.XPath;
+using ASCompletion.Context;
+using ASCompletion.Model;
 using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
 using ExportSWC.Utils;
 using ICSharpCode.SharpZipLib.Zip;
 using PluginCore;
 using PluginCore.Utilities;
+using ProjectManager.Projects.AS3;
 
 namespace ExportSWC.AsDoc
 {
@@ -107,13 +115,134 @@ namespace ExportSWC.AsDoc
             var validationErrorLogPath = Path.Combine(tempPath, "validation_errors.log");
             if (File.Exists(validationErrorLogPath))
             {
-                var content = File.ReadAllText(validationErrorLogPath);
-                WriteLine("");
-                WriteLine("Error details:", TraceMessageType.Error);
-                WriteLine(content, TraceMessageType.Error);
+                var toplevelXmlFilepath = Path.Combine(tempPath, "toplevel.xml");
+
+                var handled = false;
+                if (File.Exists(toplevelXmlFilepath))
+                {
+                    handled = TryParseValidationErrorsLog(context, project, validationErrorLogPath, toplevelXmlFilepath);
+                }
+
+                if (!handled)
+                {
+                    var content = File.ReadAllText(validationErrorLogPath);
+                    WriteLine("");
+                    WriteLine("Error details:", TraceMessageType.Error);
+                    WriteLine(content, TraceMessageType.Error);
+                }
             }
 
             return success;
+        }
+
+        private bool TryParseValidationErrorsLog(AsDocContext context, AS3Project project, string validationErrorLogPath, string toplevelXmlFilepath)
+        {
+            try
+            {
+                // parse
+                var toplevelX = XDocument.Load(toplevelXmlFilepath);
+
+                var sourceRegex = new Regex("Text for description in (?<fullname>(?<namespace>[a-zA-Z0-9.]+):?(?<classname>[a-zA-Z0-9.]+)(/(?<modifier>[a-z]+):?(?<member>[a-zA-Z0-9_]+))?)");
+                var positionRegex = new Regex("lineNumber: (?<linenumber>[0-9]+); columnNumber: (?<columnnumber>[0-9]+); (?<message>.*)");
+
+                var lines = File.ReadLines(validationErrorLogPath);
+                var enumerator = lines.GetEnumerator();
+                string? line = null;
+                while (true)
+                {
+                    if (line is null)
+                    {
+                        if (!enumerator.MoveNext())
+                        {
+                            break;
+                        }
+
+                        line = enumerator.Current;
+                    }
+
+                    if (line is null)
+                    {
+                        break;
+                    }
+
+                    var sourceMatch = sourceRegex.Match(line);
+                    if (sourceMatch.Success)
+                    {
+                        var fullname = sourceMatch.Groups["fullname"].Value;
+                        var @namespace = sourceMatch.Groups["namespace"].Value;
+                        var classname = sourceMatch.Groups["classname"].Value;
+                        var membername = sourceMatch.Groups["member"].Value;
+
+                        var entry = (toplevelX.XPathEvaluate($"//*[@fullname='{fullname}']") as IEnumerable).OfType<XElement>().FirstOrDefault();
+
+                        var source = entry.Attribute("sourcefile")?.Value;
+                        if (source is null)
+                        {
+                            var classX = (toplevelX.XPathEvaluate($"//*[@fullname='{(@namespace != "" ? @namespace + ":" : "")}{classname}']") as IEnumerable)
+                                .OfType<XElement>()
+                                .FirstOrDefault();
+                            source = classX!.Attribute("sourcefile").Value;
+                        }
+                        var projectRelativeSource = source.Substring(context.ProjectFullPath.Length + 1);
+
+                        if (!enumerator.MoveNext())
+                        {
+                            break;
+                        }
+                        var exception = enumerator.Current;
+
+                        var exceptionMatch = positionRegex.Match(exception);
+                        if (exceptionMatch.Success)
+                        {
+                            int.TryParse(exceptionMatch.Groups["columnnumber"].Value, out var column);
+                            int.TryParse(exceptionMatch.Groups["linenumber"].Value, out var lineNumber);
+                            var message = exceptionMatch.Groups["message"]?.Value;
+                            var fileModel = ASContext.Context.GetFileModel(projectRelativeSource);
+
+                            if (fileModel is not null)
+                            {
+                                var comments = "";
+                                var classModel = fileModel?.GetClassByName(classname);
+                                if (classModel is not null)
+                                {
+                                    if (membername != "")
+                                    {
+                                        var memberModel = classModel.Members.FirstOrDefault(x => x.Name == membername);
+                                        if (memberModel is not null)
+                                        {
+                                            comments = memberModel.Comments;
+                                            lineNumber += memberModel.LineFrom + 1;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        comments = classModel.Comments;
+                                        lineNumber += classModel.LineFrom + 1;
+                                    }
+                                }
+                                var commentLines = comments.Where(x => x == '\r').Count() + 1;
+                                lineNumber -= commentLines;
+                            }
+
+                            var resultMessage = $"{projectRelativeSource}:{lineNumber}: {message}";
+                            WriteLine(resultMessage, TraceMessageType.Error);
+                        }
+                        line = null;
+                    }
+                    else
+                    {
+                        line = null;
+                    }
+                }
+
+                WriteLine("");
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private string BuildAsDocArguments(AsDocContext context, string tempPath)
@@ -287,7 +416,9 @@ namespace ExportSWC.AsDoc
         private void ProcessError(object sender, string line)
         {
             //TraceManager.AddAsync(line, 3);
-            var isError = line.StartsWithOrdinal("Error:");
+            var isError = line.StartsWithOrdinal("Error:") ||
+                line.StartsWithOrdinal("[Error]") ||
+                line.StartsWithOrdinal("[Fatal Error]");
             var level = TraceMessageType.Warning;
             if (isError)
             {
