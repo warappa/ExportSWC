@@ -37,24 +37,6 @@ namespace ExportSWC.Compiling
             _tracer = tracer;
         }
 
-        private void ProcessOutput(object sender, string line)
-        {
-            //TraceManager.AddAsync(line);
-        }
-
-        private void ProcessError(object sender, string line)
-        {
-            var isError = line.StartsWithOrdinal("Error:");
-            _anyErrors |= isError;
-            var level = TraceMessageType.Warning;
-            if (isError)
-            {
-                level = TraceMessageType.Error;
-            }
-            //TraceManager.AddAsync(line, 3);
-            WriteLine(line, level);
-        }
-
         /// <summary>
         /// Main method for plugin - Export SWC using compc.exe
         /// </summary>
@@ -69,12 +51,7 @@ namespace ExportSWC.Compiling
 
             _running = true;
 
-            var context = new CompileContext
-            {
-                Project = project,
-                SwcProjectSettings = swcProjectSettings,
-            };
-
+            var context = new CompileContext(project, swcProjectSettings);
 
             BuildActions.GetCompilerPath(project); // use correct SDK
 
@@ -124,11 +101,8 @@ namespace ExportSWC.Compiling
 
             _running = true;
 
-            var context = new CompileContext
-            {
-                Project = project,
-                SwcProjectSettings = swcProjectSettings
-            };
+            var context = new CompileContext(project, swcProjectSettings);
+            BuildActions.GetCompilerPath(project); // use correct SDK
 
             try
             {
@@ -149,12 +123,9 @@ namespace ExportSWC.Compiling
 
             _running = true;
 
-            var context = new CompileContext
-            {
-                Project = project,
-                SwcProjectSettings = swcProjectSettings
-            };
+            var context = new CompileContext(project, swcProjectSettings);
 
+            BuildActions.GetCompilerPath(project); // use correct SDK
 
             try
             {
@@ -310,7 +281,7 @@ namespace ExportSWC.Compiling
 
             var iel = catxml.DocumentElement["files"].CreateElement("file", string.Empty);
             iel.SetAttribute("path", "icon.png");
-            iel.SetAttribute("mod", new FileInfo(tempDir + "\\icon.png").LastWriteTimeUtc.ToFileTimeUtc().ToString());
+            iel.SetAttribute("mod", new FileInfo($@"{tempDir}\icon.png").LastWriteTimeUtc.ToFileTimeUtc().ToString());
 
             // <component className="Symbol1" name="Symbol 1" icon="icon_0.png"  />
             if (catxml.DocumentElement["components"] == null)
@@ -330,7 +301,7 @@ namespace ExportSWC.Compiling
                 if (swcProjectSettings.CS3PreviewType == CS3PreviewType.ExternalSWF)
                 {
                     // livePreview exists
-                    File.Copy(swcProjectSettings.CS3PreviewResource, tempDir + "\\livePreview.swf");
+                    File.Copy(swcProjectSettings.CS3PreviewResource, $@"{tempDir}\livePreview.swf");
                     livePreviewFile = true;
                 }
                 else
@@ -345,12 +316,12 @@ namespace ExportSWC.Compiling
                     }
                     else
                     {
-                        if (File.Exists(tempDir + "\\livePreview.swf"))
+                        if (File.Exists($@"{tempDir}\livePreview.swf"))
                         {
-                            File.Delete(tempDir + "\\livePreview.swf");
+                            File.Delete($@"{tempDir}\livePreview.swf");
                         }
 
-                        File.Move(lpfile, tempDir + "\\livePreview.swf");
+                        File.Move(lpfile, $@"{tempDir}\livePreview.swf");
                         livePreviewFile = true;
                     }
                 }
@@ -369,7 +340,12 @@ namespace ExportSWC.Compiling
                 // drop digests
                 try
                 {
-                    catxml.DocumentElement["libraries"]["library"].RemoveChild(catxml.DocumentElement["libraries"]["library"]["digests"]);
+                    var libraryX = catxml.DocumentElement["libraries"]?["library"];
+                    var digestsX = libraryX?["digests"];
+                    if (digestsX is not null)
+                    {
+                        libraryX!.RemoveChild(digestsX);
+                    }
                 }
                 catch { }
 
@@ -382,12 +358,12 @@ namespace ExportSWC.Compiling
                 {
                     zo.UseZip64 = UseZip64.Off;
                     zo.SetLevel(9);
-                    SwcAdd(zo, tempDir + "\\catalog.xml");
-                    SwcAdd(zo, tempDir + "\\library.swf");
-                    SwcAdd(zo, tempDir + "\\icon.png");
+                    SwcAdd(zo, $@"{tempDir}\catalog.xml");
+                    SwcAdd(zo, $@"{tempDir}\library.swf");
+                    SwcAdd(zo, $@"{tempDir}\icon.png");
                     if (livePreviewFile)
                     {
-                        SwcAdd(zo, tempDir + "\\livePreview.swf");
+                        SwcAdd(zo, $@"{tempDir}\livePreview.swf");
                     }
 
                     zo.Finish();
@@ -396,7 +372,6 @@ namespace ExportSWC.Compiling
 
                 Directory.Delete(tempDir, true);
 
-                //TraceManager.AddAsync("Flash SWC ready: " + file);
                 WriteLine("Flash SWC ready: " + file);
             }
         }
@@ -516,15 +491,14 @@ namespace ExportSWC.Compiling
             };
             var buf = new byte[8192];
             str.PutNextEntry(entry);
-            using (var fstr = File.OpenRead(file))
+            
+            using var fstr = File.OpenRead(file);
+            int c;
+            do
             {
-                int c;
-                do
-                {
-                    c = fstr.Read(buf, 0, buf.Length);
-                    str.Write(buf, 0, c);
-                } while (c > 0);
-            }
+                c = fstr.Read(buf, 0, buf.Length);
+                str.Write(buf, 0, c);
+            } while (c > 0);
         }
 
         protected bool RunCompc(CompileContext context, string confpath)
@@ -591,7 +565,7 @@ namespace ExportSWC.Compiling
                     Application.DoEvents();
                 }
 
-                var success = process.HostedProcess.ExitCode == 0;
+                var success = process.HostedProcess!.ExitCode == 0;
 
                 Control.CheckForIllegalCrossThreadCalls = false;
 
@@ -600,15 +574,14 @@ namespace ExportSWC.Compiling
                     context.IsAsDocIntegrationAvailable)
                 {
                     var generator = new AsDocGenerator(_tracer);
-                    var asDocContext = new AsDocContext
-                    {
-                        TargetVersion = context.TargetVersion,
-                        FlexIgnoreClasses = swcProjectSettings.FlexIgnoreClasses,
-                        FlexOutputPath = context.CompcOutputPathFlex,
-                        SdkBase = sdkBase,
-                        IsAir = context.IsAir,
-                        Project = project
-                    };
+                    var asDocContext = new AsDocContext(
+                        project, 
+                        sdkBase, 
+                        context.TargetVersion, 
+                        context.IsAir, 
+                        context.CompcOutputPathFlex, 
+                        swcProjectSettings.FlexIgnoreClasses);
+
                     _anyErrors |= generator.IncludeAsDoc(asDocContext) == false;
                 }
 
@@ -799,7 +772,7 @@ namespace ExportSWC.Compiling
             // runtime-shared-libraries
             if (project.CompilerOptions.RSLPaths.Length > 0)
             {
-                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null);
+                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null!);
                 foreach (var rslUrl in project.CompilerOptions.RSLPaths)
                 {
                     rslUrls.CreateElement("rsl-url", rslUrl);
@@ -810,7 +783,7 @@ namespace ExportSWC.Compiling
             config.DocumentElement.CreateElement("benchmark", project.CompilerOptions.Benchmark.ToString().ToLower());
 
             // compiler options...
-            var compiler = config.DocumentElement.CreateElement("compiler", null);
+            var compiler = config.DocumentElement.CreateElement("compiler", null!);
 
             // compute-digest
             if (!isRuntimeSharedLibrary)
@@ -849,7 +822,7 @@ namespace ExportSWC.Compiling
             compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
 
             // source-path & include-classes
-            var sourcePath = compiler.CreateElement("source-path", null);
+            var sourcePath = compiler.CreateElement("source-path", null!);
             foreach (var classPath in project.Classpaths)
             {
                 var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
@@ -860,7 +833,7 @@ namespace ExportSWC.Compiling
             // libarary-path			
             if (project.CompilerOptions.LibraryPaths.Length > 0)
             {
-                var includeLibraries = compiler.CreateElement("library-path", null);
+                var includeLibraries = compiler.CreateElement("library-path", null!);
                 foreach (var libPath in project.CompilerOptions.LibraryPaths)
                 {
                     var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
@@ -871,7 +844,7 @@ namespace ExportSWC.Compiling
             // include-libraries
             if (project.CompilerOptions.IncludeLibraries.Length > 0)
             {
-                var includeLibraries = compiler.CreateElement("include-libraries", null);
+                var includeLibraries = compiler.CreateElement("include-libraries", null!);
                 foreach (var libPath in project.CompilerOptions.IncludeLibraries)
                 {
                     var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
@@ -887,7 +860,7 @@ namespace ExportSWC.Compiling
                 classExclusions.Add(PathUtils.GetProjectItemFullPath(context.ProjectFullPath, origClassExclusions[i]).ToLower());
             }
 
-            var includeClasses = config.DocumentElement.CreateElement("include-classes", null);
+            var includeClasses = config.DocumentElement.CreateElement("include-classes", null!);
             foreach (var classPath in project.Classpaths)
             {
                 var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
@@ -897,7 +870,7 @@ namespace ExportSWC.Compiling
             // external-library-path 
             if (project.CompilerOptions.ExternalLibraryPaths != null && project.CompilerOptions.ExternalLibraryPaths.Length > 0)
             {
-                var externalLibs = compiler.CreateElement("external-library-path", null);
+                var externalLibs = compiler.CreateElement("external-library-path", null!);
                 var attr = externalLibs.OwnerDocument.CreateAttribute("append");
                 attr.InnerXml = "true";
                 externalLibs.Attributes.Append(attr);
@@ -931,8 +904,9 @@ namespace ExportSWC.Compiling
             // add every AS class to the manifest
             foreach (var file in directory.GetFiles())
             {
-                if (file.Extension == ".as" ||
-                    file.Extension == ".mxml")
+                if (file.Extension is 
+                    ".as" or
+                    ".mxml")
                 {
                     if (!PathUtils.IsFileIgnored(projectPath, file.FullName, classExclusions))
                     {
@@ -946,6 +920,24 @@ namespace ExportSWC.Compiling
             {
                 IncludeClassesIn(includeClasses, projectPath, folder.FullName, parentPath + folder.Name + ".", classExclusions);
             }
+        }
+
+        private void ProcessOutput(object sender, string line)
+        {
+            //TraceManager.AddAsync(line);
+        }
+
+        private void ProcessError(object sender, string line)
+        {
+            var isError = line.StartsWithOrdinal("Error:");
+            _anyErrors |= isError;
+            var level = TraceMessageType.Warning;
+            if (isError)
+            {
+                level = TraceMessageType.Error;
+            }
+            //TraceManager.AddAsync(line, 3);
+            WriteLine(line, level);
         }
 
         private void WriteLine(string msg)

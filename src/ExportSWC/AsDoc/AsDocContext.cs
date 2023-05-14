@@ -6,20 +6,30 @@ namespace ExportSWC.AsDoc
 {
     internal class AsDocContext
     {
-        private string _projectFullPath;
+        private string? _projectFullPath;
 
-        public AS3Project Project { get; set; }
+        public AsDocContext(AS3Project project, string sdkBase, string targetVersion, bool isAir, string outputPath, List<string> flexIgnoreClasses)
+        {
+            Project = project;
+            SdkBase = sdkBase;
+            TargetVersion = targetVersion;
+            IsAir = isAir;
+            FlexOutputPath = outputPath;
+            FlexIgnoreClasses = flexIgnoreClasses;
+        }
+
+        public AS3Project Project { get; }
         
-        public string SdkBase { get; set; }
+        public string SdkBase { get; }
 
         public string ProjectFullPath => _projectFullPath ??= new DirectoryInfo(Project.Directory).FullName;
 
-        public bool IsAir { get; set; }
+        public bool IsAir { get; }
         
-        public string TargetVersion { get; set; }
+        public string TargetVersion { get; }
         
-        public List<string> FlexIgnoreClasses { get; set; } = new List<string>();
+        public List<string> FlexIgnoreClasses { get; } = new List<string>();
         
-        public string FlexOutputPath { get; set; }
+        public string FlexOutputPath { get; }
     }
 }

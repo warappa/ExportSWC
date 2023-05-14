@@ -19,41 +19,39 @@ namespace ExportSWC
 {
     public partial class PluginMain : IPlugin
     {
-        private string settingFilename;
-        private object settingObject;
-        private Image pluginImage;
-        private string CurrentSWCProjectPath => GetSwcProjectSettingsPath(CurrentProject);
+        private object _settingObject;
+        private string? CurrentSWCProjectPath => GetSwcProjectSettingsPath(CurrentProject);
 
         /* added split button */
-        private ToolStripSplitButton _button;
+        private ToolStripSplitButton _button = null!;
         /* added extra buttons */
-        private ToolStripMenuItem _button_build_def;
-        private ToolStripMenuItem _button_partial;
-        private ToolStripMenuItem _button_compile;
-        private ToolStripSeparator _button_seperator;
-        private ToolStripMenuItem _button_config;
+        private ToolStripMenuItem _button_build_def = null!;
+        private ToolStripMenuItem _button_partial = null!;
+        private ToolStripMenuItem _button_compile = null!;
+        private ToolStripSeparator _button_seperator = null!;
+        private ToolStripMenuItem _button_config = null!;
 
-
-        private ICollection<GenericNode> FilesTreeView;
+        private ICollection<GenericNode>? FilesTreeView;
 
         /* SWC project */
-        private SWCProject CurrentSwcProject;
+        private SWCProject? CurrentSwcProject;
 
-        private ITraceable _tracer;
-        private SWCBuilder _compiler;
+        private readonly ITraceable _tracer;
+        private readonly SWCBuilder _compiler;
 
         /// <summary>
         /// The current AS3 project.
         /// </summary>
-        private AS3Project CurrentProject => PluginBase.CurrentProject as AS3Project;
+        private AS3Project? CurrentProject => PluginBase.CurrentProject as AS3Project;
 
-        private DirectoryInfo CurrentProjectPath => new DirectoryInfo(CurrentProject.Directory);
+        private DirectoryInfo? CurrentProjectPath => CurrentProject is null ? null : new DirectoryInfo(CurrentProject.Directory);
 
         public PluginMain()
         {
             _tracer = new TraceManagerTracer();
             _compiler = new SWCBuilder(_tracer);
-    }
+            _settingObject = new object();
+        }
 
         /// <summary>
         /// Name of the plugin
@@ -84,7 +82,7 @@ namespace ExportSWC
         /// Object that contains the settings
         /// </summary>
         [Browsable(false)]
-        public object Settings => settingObject;
+        public object Settings => _settingObject;
 
         public int Api => 1;
 
@@ -120,7 +118,7 @@ namespace ExportSWC
             {
                 // Catches CurrentProject change event and display the active project path
                 case EventType.Command:
-                    var cmd = (e as DataEvent).Action;
+                    var cmd = ((DataEvent)e).Action;
                     if (cmd == "ProjectManager.Project")
                     {
                         var project = PluginBase.CurrentProject;
@@ -128,9 +126,9 @@ namespace ExportSWC
                         if (project != null &&
                             project.Language.ToLower() == "as3")
                         {
-                            CurrentSwcProject = SWCProject.Load(CurrentSWCProjectPath);
+                            CurrentSwcProject = SWCProject.Load(CurrentSWCProjectPath!);
 
-                            InitProjectFile(CurrentProject, CurrentSwcProject);
+                            InitProjectFile(CurrentProject!, CurrentSwcProject);
 
                             _button.Enabled = true;
                         }
@@ -138,16 +136,15 @@ namespace ExportSWC
                         {
                             _button.Enabled = false;
                             FilesTreeView = null;
+                            CurrentSwcProject = null;
                         }
                     }
 
                     if (sender?.GetType() == typeof(ProjectTreeView))
                     {
                         var tree = (ProjectTreeView)sender;
-                        if (FilesTreeView == null)
-                        {
-                            FilesTreeView = tree.NodeMap.Values;
-                        }
+
+                        FilesTreeView ??= tree.NodeMap.Values;
 
                         if (cmd == "ProjectManager.TreeSelectionChanged" &&
                             _button.Enabled)
@@ -181,15 +178,15 @@ namespace ExportSWC
         /// <summary>
         /// Loads the plugin settings
         /// </summary>
-        public void LoadSettings()
+        private void LoadSettings()
         {
-            settingObject = new object();
+            _settingObject = new object();
         }
 
         /// <summary>
         /// Saves the plugin settings
         /// </summary>
-        public void SaveSettings()
+        private void SaveSettings()
         {
             // noop
         }
@@ -197,7 +194,7 @@ namespace ExportSWC
         /// <summary>
         /// Initializes important variables
         /// </summary>
-        public void InitializeBasics()
+        private void InitializeBasics()
         {
             var dataPath = Path.Combine(PathHelper.DataDir, "ExportSWC");
             if (!Directory.Exists(dataPath))
@@ -205,14 +202,14 @@ namespace ExportSWC
                 Directory.CreateDirectory(dataPath);
             }
 
-            settingFilename = Path.Combine(dataPath, "Settings.fdb");
-            pluginImage = LocaleHelper.GetImage("icon");
+            // settingFilename = Path.Combine(dataPath, "Settings.fdb");
+            // pluginImage = LocaleHelper.GetImage("icon");
         }
 
         /// <summary>
         /// Adds the required event handlers
         /// </summary> 
-        public void AddEventHandlers()
+        private void AddEventHandlers()
         {
             // Set events you want to listen (combine as flags)
             EventManager.AddEventHandler(this, EventType.FileSwitch | EventType.Command);
@@ -221,7 +218,7 @@ namespace ExportSWC
         /// <summary>
         /// Initializes the localization of the plugin
         /// </summary>
-        public void InitializeLocalization()
+        private void InitializeLocalization()
         {
             var locale = PluginBase.MainForm.Settings.LocaleVersion;
 
@@ -254,6 +251,9 @@ namespace ExportSWC
 
         private void PaintTreeNodes(ICollection<GenericNode> nodes)
         {
+            EnsureNotNull(CurrentSwcProject);
+            EnsureNotNull(CurrentProjectPath);
+
             var projPathFNm = CurrentProjectPath.FullName;
             var projPathFNmLen = projPathFNm.Length;
             string nodeBackPath;
@@ -283,7 +283,7 @@ namespace ExportSWC
 
                     if (node.GetType() == typeof(TreeNode))
                     {
-                        PaintTreeNodes(node.Nodes as ICollection<GenericNode>);
+                        PaintTreeNodes((ICollection<GenericNode>)node.Nodes);
                     }
                 }
             }

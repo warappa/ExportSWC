@@ -9,16 +9,22 @@ namespace ExportSWC.Compiling
 {
     internal class CompileContext
     {
-        private string _projectFullPath;
-        private string _sdkBase;
-        private string _objDirectory;
-        private Version _sdkVersion;
+        private string? _projectFullPath;
+        private string? _sdkBase;
+        private string? _objDirectory;
+        private Version? _sdkVersion;
 
-        public AS3Project Project { get; set; }
-        public SWCProject SwcProjectSettings { get; set; }
+        public CompileContext(AS3Project project, SWCProject swcProjectSettings)
+        {
+            Project = project;
+            SwcProjectSettings = swcProjectSettings;
+        }
+
+        public AS3Project Project { get; }
+
+        public SWCProject SwcProjectSettings { get; }
 
         public string ProjectFullPath => _projectFullPath ??= new DirectoryInfo(Project.Directory).FullName;
-
 
         /// <summary>
         /// The SDK base path.
@@ -27,7 +33,7 @@ namespace ExportSWC.Compiling
 
         public bool IsAir => ExtractPlatform() == "AIR";
 
-        public virtual string ExtractPlatform()
+        public virtual string? ExtractPlatform()
         {
             // expected from project manager: "Flash Player;9.0;path;path..."
             var platform = Project.MovieOptions.Platform;
@@ -64,8 +70,24 @@ namespace ExportSWC.Compiling
                 {
                     var discriminator = IsAir ? "air" : "flex";
 
+                    var sdkDescriptionFilepath = Path.Combine(SdkBase, $"{discriminator}-sdk-description.xml");
+                    if (!File.Exists(sdkDescriptionFilepath))
+                    {
+                        if (IsAir)
+                        {
+                            // try fall back to flex
+                            discriminator = "flex";
+                            sdkDescriptionFilepath = Path.Combine(SdkBase, $"{discriminator}-sdk-description.xml");
+                        }
+
+                        if (!File.Exists(sdkDescriptionFilepath))
+                        {
+                            return null;
+                        }
+                    }
+
                     var doc = new XmlDocument();
-                    doc.Load(Path.Combine(SdkBase, $"{discriminator}-sdk-description.xml"));
+                    doc.Load(Path.Combine(SdkBase, sdkDescriptionFilepath));
 
                     var versionNode = doc.SelectSingleNode($"{discriminator}-sdk-description/version");
                     var buildNode = doc.SelectSingleNode($"{discriminator}-sdk-description/build");
@@ -91,7 +113,8 @@ namespace ExportSWC.Compiling
             get
             {
                 // Patch: Use custom SDK path (if available)
-                if (!IsAir && SdkVersion.Major >= 4)
+                if (!IsAir &&
+                    EnsureNotNull(SdkVersion).Major >= 4)
                 {
                     return true;
                 }

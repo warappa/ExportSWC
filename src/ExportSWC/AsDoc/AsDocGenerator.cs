@@ -40,11 +40,8 @@ namespace ExportSWC.AsDoc
             WriteLine("AsDoc temp output: " + tempPath);
 
             var asDocPath = Path.Combine(context.SdkBase, @"bin\asdoc.exe");
-            var asdoc = PathUtils.GetExeOrBatPath(asDocPath);
-            if (asdoc is null)
-            {
-                throw new FileNotFoundException("asdoc not found", asDocPath);
-            }
+            var asdoc = PathUtils.GetExeOrBatPath(asDocPath)
+                ?? throw new FileNotFoundException("asdoc not found", asDocPath);
 
             WriteLine($"Start AsDoc: {asdoc.FullName}\n{arguments}");
 
@@ -99,7 +96,7 @@ namespace ExportSWC.AsDoc
                 Application.DoEvents();
             }
 
-            exitCode = process.HostedProcess.ExitCode;
+            exitCode = process.HostedProcess!.ExitCode;
 
             var success = exitCode == 0;
 
@@ -224,14 +221,13 @@ namespace ExportSWC.AsDoc
         private void MergeAsDocIntoSWC(string tmpPath, string targetSwcFile)
         {
             using var fsZip = new FileStream(targetSwcFile, FileMode.Open, FileAccess.ReadWrite); //CompcBinPath_Flex
-            using (var zipFile = new ZipFile(fsZip))
-            {
-                zipFile.BeginUpdate();
+            using var zipFile = new ZipFile(fsZip);
 
-                AddContentsOfDirectory(zipFile, Path.Combine(tmpPath, "tempdita"), Path.Combine(tmpPath, "tempdita"), "docs");
+            zipFile.BeginUpdate();
 
-                zipFile.CommitUpdate();
-            }
+            AddContentsOfDirectory(zipFile, Path.Combine(tmpPath, "tempdita"), Path.Combine(tmpPath, "tempdita"), "docs");
+
+            zipFile.CommitUpdate();
         }
 
         private void AddContentsOfDirectory(ZipFile zipFile, string path, string basePath, string prefix)
@@ -258,8 +254,9 @@ namespace ExportSWC.AsDoc
             // add every AS class
             foreach (var file in directory.GetFiles())
             {
-                if (file.Extension == ".as" ||
-                    file.Extension == ".mxml")
+                if (file.Extension is 
+                    ".as" or
+                    ".mxml")
                 {
                     if (!PathUtils.IsFileIgnored(context.ProjectFullPath, file.FullName, classExclusions))
                     {

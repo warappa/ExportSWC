@@ -6,6 +6,8 @@ using System.Xml.Serialization;
 
 namespace ExportSWC.Options
 {
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+
     [Serializable]
     public class SWCProject
     {
@@ -101,23 +103,17 @@ namespace ExportSWC.Options
 
         internal bool ValidLivePreview()
         {
-            switch (CS3PreviewType)
+            return CS3PreviewType switch
             {
-                case CS3PreviewType.ExternalSWF:
-                    return File.Exists(CS3PreviewResource);
-                case CS3PreviewType.Class:
-                    return true;
-                default:
-                    return false;
-            }
+                CS3PreviewType.ExternalSWF => File.Exists(CS3PreviewResource),
+                CS3PreviewType.Class => true,
+                _ => false,
+            };
         }
 
         internal void IncrementVersion(int a, int b, int c)
         {
-            if (MXIVersion == null)
-            {
-                MXIVersion = "0.0.0";
-            }
+            MXIVersion ??= "0.0.0";
 
             var vers = MXIVersion.Split('.');
             if (vers.Length != 3)
@@ -133,3 +129,5 @@ namespace ExportSWC.Options
         }
     }
 }
+
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.

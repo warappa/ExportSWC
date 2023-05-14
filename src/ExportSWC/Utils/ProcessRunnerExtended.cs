@@ -9,22 +9,22 @@ using PluginCore;
 
 namespace ExportSWC.Utils
 {
-    public class ProcessRunnerExtended
+    internal class ProcessRunnerExtended
     {
-        private StreamReader outputReader;
-        private StreamReader errorReader;
+        private StreamReader? outputReader;
+        private StreamReader? errorReader;
         private int tasksFinished;
-        private NextTask nextTask;
+        private NextTask? nextTask;
 
-        public event PluginCore.Utilities.LineOutputHandler Output;
-        public event PluginCore.Utilities.LineOutputHandler Error;
-        public event PluginCore.Utilities.ProcessEndedHandler ProcessEnded;
+        public event PluginCore.Utilities.LineOutputHandler? Output;
+        public event PluginCore.Utilities.LineOutputHandler? Error;
+        public event PluginCore.Utilities.ProcessEndedHandler? ProcessEnded;
 
-        public string WorkingDirectory;
-        public Process HostedProcess { get; set; }
-        public bool IsRunning { get; set; }
+        public Process? HostedProcess { get; private set; }
+        public bool IsRunning { get; private set; }
+
+        public string? WorkingDirectory { get; set; }
         public bool RedirectInput { get; set; }
-
 
         public void Run(string fileName, string arguments, Dictionary<string, string> environment) => Run(fileName, arguments, false, environment);
 
@@ -81,8 +81,6 @@ namespace ExportSWC.Utils
             readErrorDel.BeginInvoke(TaskFinished, null);
         }
 
-
-
         public void KillProcess()
         {
             if (HostedProcess is null) return;
@@ -104,27 +102,27 @@ namespace ExportSWC.Utils
             }
         }
 
-        void ReadOutput()
+        private void ReadOutput()
         {
             while (true)
             {
-                var line = outputReader.ReadLine();
+                var line = outputReader!.ReadLine();
                 if (line is null) break;
                 Output?.Invoke(this, line);
             }
         }
 
-        void ReadError()
+        private void ReadError()
         {
             while (true)
             {
-                var line = errorReader.ReadLine();
+                var line = errorReader!.ReadLine();
                 if (line is null) break;
                 Error?.Invoke(this, line);
             }
         }
 
-        void TaskFinished(IAsyncResult result)
+        private void TaskFinished(IAsyncResult result)
         {
             lock (this)
             {
@@ -143,9 +141,6 @@ namespace ExportSWC.Utils
                 }
             }
         }
-
-        //public delegate void LineOutputHandler(object sender, string line);
-        //public delegate void ProcessEndedHandler(object sender, int exitCode);
 
         internal delegate void NextTask();
     }

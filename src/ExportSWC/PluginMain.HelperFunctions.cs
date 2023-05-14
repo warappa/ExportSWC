@@ -1,17 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using ExportSWC.Options;
+using ExportSWC.Utils;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
     public partial class PluginMain
     {
-        protected string GetRelativePath(string rootPath, string targetPath)
+        private string? GetRelativePath(string rootPath, string targetPath)
         {
+            EnsureNotNull(CurrentProjectPath);
+
             int i, k, j, count;
-            rootPath = GetProjectItemFullPath(rootPath).ToLower();
-            targetPath = GetProjectItemFullPath(targetPath).ToLower();
+            rootPath = PathUtils.GetProjectItemFullPath(CurrentProjectPath.FullName, rootPath).ToLower();
+            targetPath = PathUtils.GetProjectItemFullPath(CurrentProjectPath.FullName, targetPath).ToLower();
 
             var strsRoot = rootPath.Split(new char[] { '\\' });
             var strsTarget = targetPath.Split(new char[] { '\\' });
@@ -62,30 +65,10 @@ namespace ExportSWC
 
         }
 
-        protected bool IsFileIgnored(string file, List<string> classExclusions)
-        {
-            var filePath = GetProjectItemFullPath(file);
-
-            if (classExclusions.Contains(filePath.ToLower()))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private string GetProjectItemFullPath(string path)
-        {
-            if (Path.IsPathRooted(path))
-            {
-                return path;
-            }
-
-            return Path.GetFullPath(CurrentProjectPath.FullName + "\\" + path);
-        }
-            
         private SWCProject GetSwcProjectSettings(AS3Project as3Project)
         {
+            EnsureNotNull(as3Project);
+
             var swcProject = SWCProject.Load(GetSwcProjectSettingsPath(as3Project));
 
             InitProjectFile(as3Project, swcProject);
@@ -93,9 +76,15 @@ namespace ExportSWC
             return swcProject;
         }
 
-        private string GetSwcProjectSettingsPath(AS3Project as3Project)
+        [return: NotNullIfNotNull(nameof(as3Project))]
+        private string? GetSwcProjectSettingsPath(AS3Project? as3Project)
         {
-            return new DirectoryInfo(as3Project.Directory).FullName + "\\" + as3Project.Name + ".lxml";
+            if (as3Project is null)
+            {
+                return null;
+            }
+
+            return $@"{new DirectoryInfo(as3Project.Directory).FullName}\{as3Project.Name}.lxml";
         }
     }
 }

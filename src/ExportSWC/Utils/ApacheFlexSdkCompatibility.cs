@@ -2,14 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using PluginCore;
 using ProjectManager.Actions;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC.Utils
 {
-    public static class ApacheFlexSdkCompatibility
+    internal static class ApacheFlexSdkCompatibility
     {
         public static void SetApacheFlexCompatibilityEnvironment(this IDictionary<string, string> env, AS3Project project)
         {

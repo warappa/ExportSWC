@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net4.8</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
     <OutputPath>..\FlashDevelop\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <NoWarn>$(NoWarn);MSB3270</NoWarn>
@@ -16,10 +16,16 @@
     <Description>Uses compc.exe from Flex sdk to compile SWC files from project resources</Description>
     <Copyright>Ali Chamas, Ben Babik-Charnock, David Rettenbacher 2008 - 2023</Copyright>
     <AssemblyTitle>ExportSWC</AssemblyTitle>
-    <AssemblyVersion>4.3.0</AssemblyVersion>
-    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <Deterministic>false</Deterministic>    
+    <AssemblyVersion>5.0.0</AssemblyVersion>
+    <Deterministic>false</Deterministic>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Polyfill" Version="1.23.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FlashDevelop\External\Plugins\AS3Context\AS3Context.csproj" />

@@ -13,7 +13,7 @@ namespace ExportSWC
         /// <summary>
         /// Creates a menu item for the plugin and adds a ignored key
         /// </summary>
-        public void CreateMenuItem()
+        private void CreateMenuItem()
         {
             //ToolStripMenuItem viewMenu = (ToolStripMenuItem)PluginBase.MainForm.FindMenuItem("ViewMenu");
             //viewMenu.DropDownItems.Add(new ToolStripMenuItem(LocaleHelper.GetString("Label.ViewMenuItem"), this.pluginImage, new EventHandler(Configure)));
@@ -76,12 +76,15 @@ namespace ExportSWC
 
         private void Configure(object sender, EventArgs e)
         {
+            EnsureNotNull(CurrentProject);
+            EnsureNotNull(CurrentSwcProject);
+
             ConfigureSwcProject(CurrentProject, CurrentSwcProject);
         }
 
         private void ConfigureSwcProject(AS3Project project, SWCProject swcProject)
         {
-            var dr = ProjectOptions.ShowDialog(swcProject, _compiler);
+            var dr = ProjectOptions.ShowDialog(swcProject);
 
             if (dr == DialogResult.OK)
             {

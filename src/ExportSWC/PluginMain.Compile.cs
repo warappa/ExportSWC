@@ -9,12 +9,15 @@ namespace ExportSWC
         /// </summary>
         /// <param name="sender">the sender</param>
         /// <param name="e">the event args</param>
-        protected void Build(object sender, EventArgs e)
+        private void Build(object sender, EventArgs e)
         {
             _button.Enabled = false;
 
             try
             {
+                EnsureNotNull(CurrentProject);
+                EnsureNotNull(CurrentSwcProject);
+
                 _compiler.Build(CurrentProject, CurrentSwcProject);
             }
             finally
@@ -23,13 +26,19 @@ namespace ExportSWC
             }
         }
 
-        protected void PreBuildClick(object sender, EventArgs e)
+        private void PreBuildClick(object sender, EventArgs e)
         {
+            EnsureNotNull(CurrentProject);
+            EnsureNotNull(CurrentSwcProject);
+
             _compiler.PreBuild(CurrentProject, CurrentSwcProject);
         }
 
-        protected void CompileClick(object sender, EventArgs e)
+        private void CompileClick(object sender, EventArgs e)
         {
+            EnsureNotNull(CurrentProject);
+            EnsureNotNull(CurrentSwcProject);
+
             _compiler.Compile(CurrentProject, CurrentSwcProject);
         }
     }

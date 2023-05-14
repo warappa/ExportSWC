@@ -7,7 +7,7 @@ namespace ExportSWC.Resources
 {
     internal class LocaleHelper
     {
-        private static ResourceManager resources = null;
+        private static ResourceManager? resources;
 
         /// <summary>
         /// Initializes the localization of the plugin
@@ -23,12 +23,12 @@ namespace ExportSWC.Resources
         /// </summary>
         public static string GetString(string identifier)
         {
-            return resources.GetString(identifier);
+            return resources!.GetString(identifier);
         }
 
         public static Image GetImage(string identifier)
         {
-            return (Image)resources.GetObject(identifier);
+            return (Image)resources!.GetObject(identifier);
         }
     }
 }

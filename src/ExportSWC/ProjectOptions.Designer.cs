@@ -99,7 +99,7 @@
 			resources.ApplyResources(this.buttonBrowseFlexOutput, "buttonBrowseFlexOutput");
 			this.buttonBrowseFlexOutput.Name = "buttonBrowseFlexOutput";
 			this.buttonBrowseFlexOutput.UseVisualStyleBackColor = true;
-			this.buttonBrowseFlexOutput.Click += new System.EventHandler(this.buttonBrowseFlexOutput_Click);
+			this.buttonBrowseFlexOutput.Click += new System.EventHandler(this.ButtonBrowseFlexOutput_Click);
 			// 
 			// label11
 			// 
@@ -111,7 +111,7 @@
 			this.textBoxFlexBin.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
 			resources.ApplyResources(this.textBoxFlexBin, "textBoxFlexBin");
 			this.textBoxFlexBin.Name = "textBoxFlexBin";
-			this.textBoxFlexBin.Leave += new System.EventHandler(this.textBoxFlexBin_Leave);
+			this.textBoxFlexBin.Leave += new System.EventHandler(this.TextBoxFlexBin_Leave);
 			// 
 			// cb_intrinsic_flex
 			// 
@@ -163,7 +163,7 @@
 			resources.ApplyResources(this.buttonBrowseFlashOutput, "buttonBrowseFlashOutput");
 			this.buttonBrowseFlashOutput.Name = "buttonBrowseFlashOutput";
 			this.buttonBrowseFlashOutput.UseVisualStyleBackColor = true;
-			this.buttonBrowseFlashOutput.Click += new System.EventHandler(this.buttonBrowseFlashOutput_Click);
+			this.buttonBrowseFlashOutput.Click += new System.EventHandler(this.ButtonBrowseFlashOutput_Click);
 			// 
 			// label12
 			// 
@@ -175,7 +175,7 @@
 			this.textBoxFlashBin.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
 			resources.ApplyResources(this.textBoxFlashBin, "textBoxFlashBin");
 			this.textBoxFlashBin.Name = "textBoxFlashBin";
-			this.textBoxFlashBin.Leave += new System.EventHandler(this.textBoxFlashBin_Leave);
+			this.textBoxFlashBin.Leave += new System.EventHandler(this.TextBoxFlashBin_Leave);
 			// 
 			// tb_comver
 			// 
@@ -233,7 +233,7 @@
 			resources.ApplyResources(this.button2, "button2");
 			this.button2.Name = "button2";
 			this.button2.UseVisualStyleBackColor = true;
-			this.button2.Click += new System.EventHandler(this.button2_Click);
+			this.button2.Click += new System.EventHandler(this.Button2_Click);
 			// 
 			// cb_runaem
 			// 
@@ -245,15 +245,15 @@
 			// 
 			resources.ApplyResources(this.tb_preview, "tb_preview");
 			this.tb_preview.Name = "tb_preview";
-			this.tb_preview.TextChanged += new System.EventHandler(this.tb_preview_TextChanged);
-			this.tb_preview.DoubleClick += new System.EventHandler(this.tb_SelectAll);
+			this.tb_preview.TextChanged += new System.EventHandler(this.Tb_preview_TextChanged);
+			this.tb_preview.DoubleClick += new System.EventHandler(this.Tb_SelectAll);
 			// 
 			// cb_createmxi
 			// 
 			resources.ApplyResources(this.cb_createmxi, "cb_createmxi");
 			this.cb_createmxi.Name = "cb_createmxi";
 			this.cb_createmxi.UseVisualStyleBackColor = true;
-			this.cb_createmxi.CheckedChanged += new System.EventHandler(this.uiSettingChanged);
+			this.cb_createmxi.CheckedChanged += new System.EventHandler(this.UiSettingChanged);
 			// 
 			// rb_class
 			// 
@@ -261,7 +261,7 @@
 			this.rb_class.Name = "rb_class";
 			this.rb_class.TabStop = true;
 			this.rb_class.UseVisualStyleBackColor = true;
-			this.rb_class.CheckedChanged += new System.EventHandler(this.uiSettingChanged);
+			this.rb_class.CheckedChanged += new System.EventHandler(this.UiSettingChanged);
 			// 
 			// rb_swf
 			// 
@@ -269,7 +269,7 @@
 			this.rb_swf.Name = "rb_swf";
 			this.rb_swf.TabStop = true;
 			this.rb_swf.UseVisualStyleBackColor = true;
-			this.rb_swf.CheckedChanged += new System.EventHandler(this.uiSettingChanged);
+			this.rb_swf.CheckedChanged += new System.EventHandler(this.UiSettingChanged);
 			// 
 			// rb_none
 			// 
@@ -277,7 +277,7 @@
 			this.rb_none.Name = "rb_none";
 			this.rb_none.TabStop = true;
 			this.rb_none.UseVisualStyleBackColor = true;
-			this.rb_none.CheckedChanged += new System.EventHandler(this.uiSettingChanged);
+			this.rb_none.CheckedChanged += new System.EventHandler(this.UiSettingChanged);
 			// 
 			// label5
 			// 
@@ -289,14 +289,14 @@
 			resources.ApplyResources(this.button1, "button1");
 			this.button1.Name = "button1";
 			this.button1.UseVisualStyleBackColor = true;
-			this.button1.Click += new System.EventHandler(this.button1_Click);
+			this.button1.Click += new System.EventHandler(this.Button1_Click);
 			// 
 			// tb_icon
 			// 
 			resources.ApplyResources(this.tb_icon, "tb_icon");
 			this.tb_icon.Name = "tb_icon";
-			this.tb_icon.TextChanged += new System.EventHandler(this.tb_icon_TextChanged);
-			this.tb_icon.DoubleClick += new System.EventHandler(this.tb_SelectAll);
+			this.tb_icon.TextChanged += new System.EventHandler(this.Tb_icon_TextChanged);
+			this.tb_icon.DoubleClick += new System.EventHandler(this.Tb_SelectAll);
 			// 
 			// label4
 			// 
@@ -318,13 +318,13 @@
 			// 
 			resources.ApplyResources(this.tb_tooltip, "tb_tooltip");
 			this.tb_tooltip.Name = "tb_tooltip";
-			this.tb_tooltip.DoubleClick += new System.EventHandler(this.tb_SelectAll);
+			this.tb_tooltip.DoubleClick += new System.EventHandler(this.Tb_SelectAll);
 			// 
 			// tb_compgroup
 			// 
 			resources.ApplyResources(this.tb_compgroup, "tb_compgroup");
 			this.tb_compgroup.Name = "tb_compgroup";
-			this.tb_compgroup.DoubleClick += new System.EventHandler(this.tb_SelectAll);
+			this.tb_compgroup.DoubleClick += new System.EventHandler(this.Tb_SelectAll);
 			// 
 			// label2
 			// 
@@ -340,7 +340,7 @@
 			// 
 			resources.ApplyResources(this.tb_compname, "tb_compname");
 			this.tb_compname.Name = "tb_compname";
-			this.tb_compname.DoubleClick += new System.EventHandler(this.tb_SelectAll);
+			this.tb_compname.DoubleClick += new System.EventHandler(this.Tb_SelectAll);
 			// 
 			// cb_intrinsic_cs3
 			// 
@@ -353,7 +353,7 @@
 			resources.ApplyResources(this.cb_makecs3, "cb_makecs3");
 			this.cb_makecs3.Name = "cb_makecs3";
 			this.cb_makecs3.UseVisualStyleBackColor = true;
-			this.cb_makecs3.CheckedChanged += new System.EventHandler(this.uiSettingChanged);
+			this.cb_makecs3.CheckedChanged += new System.EventHandler(this.UiSettingChanged);
 			// 
 			// button3
 			// 
@@ -361,7 +361,7 @@
 			resources.ApplyResources(this.button3, "button3");
 			this.button3.Name = "button3";
 			this.button3.UseVisualStyleBackColor = true;
-			this.button3.Click += new System.EventHandler(this.button3_Click);
+			this.button3.Click += new System.EventHandler(this.Button3_Click);
 			// 
 			// button4
 			// 
@@ -375,14 +375,14 @@
 			this.openFileDialogIcon.DefaultExt = "png";
 			this.openFileDialogIcon.FileName = "icon.png";
 			resources.ApplyResources(this.openFileDialogIcon, "openFileDialogIcon");
-			this.openFileDialogIcon.FileOk += new System.ComponentModel.CancelEventHandler(this.openFileDialog1_FileOk);
+			this.openFileDialogIcon.FileOk += new System.ComponentModel.CancelEventHandler(this.OpenFileDialog1_FileOk);
 			// 
 			// openFileDialogSWF
 			// 
 			this.openFileDialogSWF.DefaultExt = "swf";
 			this.openFileDialogSWF.FileName = "preview.swf";
 			resources.ApplyResources(this.openFileDialogSWF, "openFileDialogSWF");
-			this.openFileDialogSWF.FileOk += new System.ComponentModel.CancelEventHandler(this.openFileDialog2_FileOk);
+			this.openFileDialogSWF.FileOk += new System.ComponentModel.CancelEventHandler(this.OpenFileDialog2_FileOk);
 			// 
 			// statusStrip1
 			// 

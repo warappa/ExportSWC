@@ -1,10 +1,10 @@
 ﻿using System;
+using System.Drawing;
 using System.IO;
+using System.Windows.Forms;
+using ExportSWC.Utils;
 using ProjectManager.Controls.TreeView;
 using ProjectManager.Projects.AS3;
-using System.Windows.Forms;
-using ExportSWC.Tracing;
-using System.Drawing;
 
 namespace ExportSWC
 {
@@ -12,6 +12,9 @@ namespace ExportSWC
     {
         private void InjectContextMenuItems(ProjectTreeView tree)
         {
+            EnsureNotNull(CurrentProjectPath);
+            EnsureNotNull(CurrentSwcProject);
+
             // we're only interested in single items
             if (tree.SelectedNodes.Count == 1)
             {
@@ -23,16 +26,13 @@ namespace ExportSWC
                 }
 
                 var nodeRelative = GetRelativePath(CurrentProjectPath.FullName, node.BackingPath);
-                if (nodeRelative == null)
-                {
-                    nodeRelative = node.BackingPath;
-                }
+                nodeRelative ??= node.BackingPath;
 
                 nodeRelative = nodeRelative.ToLower();
 
                 // as3 file
-                if (Path.GetExtension(node.BackingPath).ToLower() == ".as" ||
-                    Path.GetExtension(node.BackingPath).ToLower() == ".mxml")
+                if (Path.GetExtension(node.BackingPath).ToLower() is ".as" or
+                    ".mxml")
                 {
                     /* cs3 ignore item */
                     var ignoreCs3 = new ToolStripMenuItem("Exclude from CS3 SWC")
@@ -90,10 +90,13 @@ namespace ExportSWC
 
         private void IgnoreFlex_CheckedChanged(object sender, EventArgs e)
         {
+            EnsureNotNull(CurrentProjectPath);
+            EnsureNotNull(CurrentSwcProject);
+
             var exBtn = (ToolStripMenuItem)sender;
             var node = (GenericNode)exBtn.Tag;
 
-            var nodePath = GetRelativePath(CurrentProjectPath.FullName, node.BackingPath);
+            var nodePath = EnsureNotNull(GetRelativePath(CurrentProjectPath.FullName, node.BackingPath));
 
             CurrentSwcProject.FlexIgnoreClasses.Remove(nodePath);
 
@@ -104,20 +107,24 @@ namespace ExportSWC
             }
             else
             {
-                if (!IsFileIgnored(nodePath, CurrentSwcProject.CS3IgnoreClasses))
+                if (!PathUtils.IsFileIgnored(CurrentProjectPath.FullName, nodePath, CurrentSwcProject.CS3IgnoreClasses))
                 {
                     node.ForeColorRequest = Color.Black;
                 }
             }
 
-            CurrentSwcProject.Save(CurrentSWCProjectPath);
+            CurrentSwcProject.Save(CurrentSWCProjectPath!);
         }
 
         private void IgnoreCs3_CheckedChanged(object sender, EventArgs e)
         {
+            EnsureNotNull(CurrentProjectPath);
+            EnsureNotNull(CurrentSWCProjectPath);
+            EnsureNotNull(CurrentSwcProject);
+
             var exBtn = (ToolStripMenuItem)sender;
             var node = (GenericNode)exBtn.Tag;
-            var nodePath = GetRelativePath(CurrentProjectPath.FullName, node.BackingPath);
+            var nodePath = EnsureNotNull(GetRelativePath(CurrentProjectPath.FullName, node.BackingPath));
 
             CurrentSwcProject.CS3IgnoreClasses.Remove(nodePath);
 
@@ -128,7 +135,7 @@ namespace ExportSWC
             }
             else
             {
-                if (!IsFileIgnored(nodePath, CurrentSwcProject.FlexIgnoreClasses))
+                if (!PathUtils.IsFileIgnored(CurrentProjectPath.FullName, nodePath, CurrentSwcProject.FlexIgnoreClasses))
                 {
                     node.ForeColorRequest = Color.Black;
                 }

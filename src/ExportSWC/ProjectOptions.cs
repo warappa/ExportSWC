@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
-using ExportSWC.Compiling;
 using ExportSWC.Options;
 using ProjectManager.Projects.AS3;
 
@@ -11,21 +10,14 @@ namespace ExportSWC
 {
     internal partial class ProjectOptions : Form
     {
-        private readonly SWCBuilder builder;
         private readonly SWCProject project;
         private readonly AutoCompleteStringCollection classCache;
 
-        public ProjectOptions()
-        {
-            InitializeComponent();
-        }
-
-        public ProjectOptions(SWCProject swcp, SWCBuilder builder)
+        public ProjectOptions(SWCProject swcp)
         {
             InitializeComponent();
 
             project = swcp;
-            this.builder = builder;
 
             cb_intrinsic_flex.Checked = swcp.FlexIncludeASI;
 
@@ -87,13 +79,13 @@ namespace ExportSWC
             tb_compclass.AutoCompleteCustomSource = classCache;
         }
 
-        internal static DialogResult ShowDialog(SWCProject swcProject, SWCBuilder builder)
+        internal static DialogResult ShowDialog(SWCProject swcProject)
         {
-            var po = new ProjectOptions(swcProject, builder);
+            var po = new ProjectOptions(swcProject);
             return po.ShowDialog();
         }
 
-        private void button3_Click(object sender, EventArgs e)
+        private void Button3_Click(object sender, EventArgs e)
         {
             project.CS3ComponentClass = tb_compclass.Text;
             project.CS3ComponentGroup = tb_compgroup.Text;
@@ -121,12 +113,12 @@ namespace ExportSWC
             project.FlashBinPath = textBoxFlashBin.Text;
         }
 
-        private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
+        private void OpenFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
             tb_icon.Text = openFileDialogIcon.FileName;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void Button1_Click(object sender, EventArgs e)
         {
             try
             {
@@ -137,12 +129,12 @@ namespace ExportSWC
             openFileDialogIcon.ShowDialog();
         }
 
-        private void openFileDialog2_FileOk(object sender, CancelEventArgs e)
+        private void OpenFileDialog2_FileOk(object sender, CancelEventArgs e)
         {
             tb_preview.Text = openFileDialogSWF.FileName;
         }
 
-        private void button2_Click(object sender, EventArgs e)
+        private void Button2_Click(object sender, EventArgs e)
         {
             if (rb_swf.Checked)
             {
@@ -190,12 +182,12 @@ namespace ExportSWC
                 AutoCompleteMode.SuggestAppend : AutoCompleteMode.None;
         }
 
-        private void uiSettingChanged(object sender, EventArgs e)
+        private void UiSettingChanged(object sender, EventArgs e)
         {
             EnableCtrls();
         }
 
-        private void tb_icon_TextChanged(object sender, EventArgs e)
+        private void Tb_icon_TextChanged(object sender, EventArgs e)
         {
             tb_icon.BackColor = Color.FromKnownColor(KnownColor.Window);
             if (!File.Exists(tb_icon.Text))
@@ -227,7 +219,7 @@ namespace ExportSWC
             }
         }
 
-        private void tb_preview_TextChanged(object sender, EventArgs e)
+        private void Tb_preview_TextChanged(object sender, EventArgs e)
         {
             tb_preview.BackColor = Color.FromKnownColor(KnownColor.Window);
             if (rb_class.Checked)
@@ -253,7 +245,7 @@ namespace ExportSWC
             }
         }
 
-        private void tb_SelectAll(object sender, EventArgs e)
+        private void Tb_SelectAll(object sender, EventArgs e)
         {
             ((TextBox)sender).SelectAll();
         }
@@ -263,10 +255,11 @@ namespace ExportSWC
 
         }
 
-        private void textBoxFlexBin_Leave(object sender, EventArgs e)
+        private void TextBoxFlexBin_Leave(object sender, EventArgs e)
         {
             CheckFlexDir();
         }
+
         private void CheckFlexDir()
         {
             if (textBoxFlexBin.Text == "")
@@ -280,10 +273,11 @@ namespace ExportSWC
             }
         }
 
-        private void textBoxFlashBin_Leave(object sender, EventArgs e)
+        private void TextBoxFlashBin_Leave(object sender, EventArgs e)
         {
             CheckFlashDir();
         }
+
         private void CheckFlashDir()
         {
             if (textBoxFlashBin.Text == "")
@@ -297,7 +291,7 @@ namespace ExportSWC
             }
         }
 
-        private void buttonBrowseFlexOutput_Click(object sender, EventArgs e)
+        private void ButtonBrowseFlexOutput_Click(object sender, EventArgs e)
         {
             try
             {
@@ -311,7 +305,7 @@ namespace ExportSWC
             }
         }
 
-        private void buttonBrowseFlashOutput_Click(object sender, EventArgs e)
+        private void ButtonBrowseFlashOutput_Click(object sender, EventArgs e)
         {
             try
             {
