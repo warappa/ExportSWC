@@ -13,12 +13,12 @@ namespace ExportSWC.Utils
         {
             if (project.Language == "as3")
             {
-                //env["SWF_VERSION"] = "44";
+                // force english diagnostics location (file, line, column)
+                env["JAVA_TOOL_OPTIONS"] = "-Duser.language=en-US";
 
                 // see <sdk>\build.xml target "fix-config-file-for-flashbuilder":
                 // !wrong information!: "{playerglobalHome} replaced with libs/player/{targetPlayerMajorVersion}.{targetPlayerMinorVersion}"
                 // !actual information!: "{playerglobalHome} replaced with libs/player"
-
                 var playerglobalHome = Environment.ExpandEnvironmentVariables("%PLAYERGLOBAL_HOME%");
                 if (playerglobalHome.StartsWith('%'))
                 {
