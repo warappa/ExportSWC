@@ -24,6 +24,7 @@ using ExportSWC.Options;
 using ExportSWC.AsDoc;
 using ProjectManager.Actions;
 using System.Text.RegularExpressions;
+using ProjectManager;
 
 namespace ExportSWC.Compiling
 {
@@ -54,6 +55,11 @@ namespace ExportSWC.Compiling
 
             _running = true;
 
+            //var clearResultsCommand = new DataEvent(EventType.Command, "ResultsPanel.ClearResults", null);
+            //EventManager.DispatchEvent(this, clearResultsCommand);
+
+            NotifyBuildStarted(project);
+
             var context = new CompileContext(project, swcProjectSettings);
 
             BuildActions.GetCompilerPath(project); // use correct SDK
@@ -67,7 +73,13 @@ namespace ExportSWC.Compiling
 
                 if (!success)
                 {
+                    NotifyBuildFailed(project);
+
                     CleanupOutputFiles(context);
+                }
+                else
+                {
+                    NotifyBuildSucceeded(project);
                 }
             }
             finally
@@ -82,9 +94,11 @@ namespace ExportSWC.Compiling
 
             SaveModifiedDocuments();
 
-            RunPreBuildEvent(context);
-
             WriteLine("");
+            WriteLine("Build with ExportSWC", TraceMessageType.Message);
+
+            RunPreBuildEvent(context);
+            
             WriteLine("Compile Flex SWC", TraceMessageType.Message);
 
             buildSuccess &= RunCompc(context, context.CompcConfigPathFlex);
@@ -118,13 +132,24 @@ namespace ExportSWC.Compiling
             }
 
             _running = true;
+            
+            NotifyBuildStarted(project);
 
             var context = new CompileContext(project, swcProjectSettings);
             BuildActions.GetCompilerPath(project); // use correct SDK
 
             try
             {
-                Compile(context);
+                var success = Compile(context);
+
+                if (success)
+                {
+                    NotifyBuildSucceeded(project);
+                }
+                else
+                {
+                    NotifyBuildFailed(project);
+                }
             }
             finally
             {
@@ -975,6 +1000,25 @@ namespace ExportSWC.Compiling
             {
                 IncludeClassesIn(includeClasses, projectPath, folder.FullName, parentPath + folder.Name + ".", classExclusions);
             }
+        }
+
+        private void NotifyBuildStarted(AS3Project project)
+        {
+            //var buildStartedEvent = new DataEvent(EventType.Command, "ProjectManager.BuildStarted", project.TargetBuild);
+            var buildStartedEvent = new DataEvent(EventType.Command, ProjectManagerEvents.BuildProject, project.CompilerOptions.OmitTraces ? "Release" : "Debug");
+            EventManager.DispatchEvent(this, buildStartedEvent);
+        }
+
+        private void NotifyBuildSucceeded(AS3Project project)
+        {
+            var buildCompleteEvent = new DataEvent(EventType.Command, ProjectManagerEvents.BuildComplete, project);
+            EventManager.DispatchEvent(this, buildCompleteEvent);
+        }
+
+        private void NotifyBuildFailed(AS3Project project)
+        {
+            var buildCompleteEvent = new DataEvent(EventType.Command, ProjectManagerEvents.BuildFailed, project);
+            EventManager.DispatchEvent(this, buildCompleteEvent);
         }
 
         private void ProcessOutput(object sender, string line)

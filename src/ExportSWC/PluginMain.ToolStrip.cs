@@ -71,6 +71,20 @@ namespace ExportSWC
                 };
                 _button_config.Click += new EventHandler(Configure);
                 _button.DropDown.Items.Add(_button_config);
+
+                /* override default build command */
+                _button_override_default_build_command = new ToolStripMenuItem
+                {
+                    Text = "Override Default Build",
+                    Checked = _settingsObject.OverrideBuildCommand,
+                    ToolTipText = LocaleHelper.GetString("Label.OverrideDefaultBuildCommand")
+                };
+                _button_override_default_build_command.Click += (s, e) =>
+                {
+                    _settingsObject.OverrideBuildCommand = !_settingsObject.OverrideBuildCommand;
+                    _button_override_default_build_command.Checked = _settingsObject.OverrideBuildCommand;
+                };
+                _button.DropDown.Items.Add(_button_override_default_build_command);
             }
         }
 

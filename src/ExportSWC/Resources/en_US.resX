@@ -133,6 +133,9 @@
   <data name="Label.Configure" xml:space="preserve">
     <value>Configure SWC/MXI targets</value>
   </data>
+  <data name="Label.OverrideDefaultBuildCommand" xml:space="preserve">
+    <value>Override default build command</value>
+  </data>
   <data name="Label.PartialBuildButton" xml:space="preserve">
     <value>Prepare manifest/installer data (prepares compc manifest/mxi install script but doesn't compile)</value>
   </data>

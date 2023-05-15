@@ -28,18 +28,37 @@ namespace ExportSWC
 
         private void PreBuildClick(object sender, EventArgs e)
         {
-            EnsureNotNull(CurrentProject);
-            EnsureNotNull(CurrentSwcProject);
+            _button.Enabled = false;
 
-            _compiler.PreBuild(CurrentProject, CurrentSwcProject);
+            try
+            {
+
+                EnsureNotNull(CurrentProject);
+                EnsureNotNull(CurrentSwcProject);
+
+                _compiler.PreBuild(CurrentProject, CurrentSwcProject);
+            }
+            finally
+            {
+                _button.Enabled = true;
+            }
         }
 
         private void CompileClick(object sender, EventArgs e)
         {
-            EnsureNotNull(CurrentProject);
-            EnsureNotNull(CurrentSwcProject);
+            _button.Enabled = false;
 
-            _compiler.Compile(CurrentProject, CurrentSwcProject);
+            try
+            {
+                EnsureNotNull(CurrentProject);
+                EnsureNotNull(CurrentSwcProject);
+
+                _compiler.Compile(CurrentProject, CurrentSwcProject);
+            }
+            finally
+            {
+                _button.Enabled = true;
+            }
         }
     }
 }

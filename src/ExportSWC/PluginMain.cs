@@ -35,6 +35,7 @@ namespace ExportSWC
         private ToolStripMenuItem _button_compile = null!;
         private ToolStripSeparator _button_seperator = null!;
         private ToolStripMenuItem _button_config = null!;
+        private ToolStripMenuItem _button_override_default_build_command = null!;
 
         private ICollection<GenericNode>? FilesTreeView;
 
@@ -124,7 +125,7 @@ namespace ExportSWC
                 // Catches CurrentProject change event and display the active project path
                 case EventType.Command:
                     var cmd = ((DataEvent)e).Action;
-                    if (cmd == "ProjectManager.Project")
+                    if (cmd == ProjectManagerEvents.Project)
                     {
                         var project = PluginBase.CurrentProject;
                         // update button when project opens / closes
@@ -144,6 +145,17 @@ namespace ExportSWC
                             CurrentSwcProject = null;
                         }
                     }
+                    else if (_settingsObject.OverrideBuildCommand &&
+                        cmd == ProjectManagerEvents.BuildProject)
+                    {
+                        if (CurrentSwcProject is not null &&
+                            CurrentProject is not null)
+                        {
+                            e.Handled = true;
+
+                            Build(null, null);
+                        }
+                    }
 
                     if (sender?.GetType() == typeof(ProjectTreeView))
                     {
@@ -151,7 +163,7 @@ namespace ExportSWC
 
                         FilesTreeView ??= tree.NodeMap.Values;
 
-                        if (cmd == "ProjectManager.TreeSelectionChanged" &&
+                        if (cmd == ProjectManagerEvents.TreeSelectionChanged &&
                             _button.Enabled)
                         {
                             InjectContextMenuItems(tree);
@@ -240,7 +252,7 @@ namespace ExportSWC
         private void AddEventHandlers()
         {
             // Set events you want to listen (combine as flags)
-            EventManager.AddEventHandler(this, EventType.FileSwitch | EventType.Command);
+            EventManager.AddEventHandler(this, EventType.FileSwitch | EventType.Command, HandlingPriority.High);
         }
 
         /// <summary>
