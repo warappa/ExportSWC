@@ -23,11 +23,14 @@ using ExportSWC.Utils;
 using ExportSWC.Options;
 using ExportSWC.AsDoc;
 using ProjectManager.Actions;
+using System.Text.RegularExpressions;
 
 namespace ExportSWC.Compiling
 {
     internal class SWCBuilder
     {
+        private static Regex compcErrorMessageRegex = new Regex(@"^(?<start>^[a-zA-Z0-9.:\\\/]+\([0-9]+\): col: )(?<col>[0-9]+)(?<end> .*)$");
+
         private bool _anyErrors;
         private bool _running;
         private readonly ITraceable _tracer;
@@ -981,12 +984,22 @@ namespace ExportSWC.Compiling
 
         private void ProcessError(object sender, string line)
         {
+            var level = TraceMessageType.Warning;
+
             var isError = line.IndexOf("Error:") > -1;
             _anyErrors |= isError;
-            var level = TraceMessageType.Warning;
+            
             if (isError)
             {
                 level = TraceMessageType.Error;
+                var match = compcErrorMessageRegex.Match(line);
+                if (match.Success)
+                {
+                    // fix one-off error
+                    var col = int.Parse(match.Groups["col"].Value);
+                    col--;
+                    line = $"{match.Groups["start"].Value}{col}{match.Groups["end"].Value}";
+                }
             }
             //TraceManager.AddAsync(line, 3);
             WriteLine($"[compc] {line}", level);
