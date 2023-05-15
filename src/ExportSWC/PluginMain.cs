@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Runtime.Serialization.Json;
 using System.Windows.Forms;
 using ExportSWC.Compiling;
 using ExportSWC.Options;
@@ -12,6 +14,8 @@ using PluginCore;
 using PluginCore.Helpers;
 using PluginCore.Localization;
 using PluginCore.Managers;
+using PluginCore.Utilities;
+using ProjectManager;
 using ProjectManager.Controls.TreeView;
 using ProjectManager.Projects.AS3;
 
@@ -19,7 +23,8 @@ namespace ExportSWC
 {
     public partial class PluginMain : IPlugin
     {
-        private object _settingObject;
+        private string _settingsFilename = null!;
+        private ExportSWCSettings _settingsObject;
         private string? CurrentSWCProjectPath => GetSwcProjectSettingsPath(CurrentProject);
 
         /* added split button */
@@ -35,7 +40,7 @@ namespace ExportSWC
 
         /* SWC project */
         private SWCProject? CurrentSwcProject;
-
+        private DataContractJsonSerializer _settingsSerializer = new DataContractJsonSerializer(typeof(ExportSWCSettings));
         private readonly ITraceable _tracer;
         private readonly SWCBuilder _compiler;
 
@@ -50,7 +55,7 @@ namespace ExportSWC
         {
             _tracer = new TraceManagerTracer();
             _compiler = new SWCBuilder(_tracer);
-            _settingObject = new object();
+            _settingsObject = new ExportSWCSettings();
         }
 
         /// <summary>
@@ -82,7 +87,7 @@ namespace ExportSWC
         /// Object that contains the settings
         /// </summary>
         [Browsable(false)]
-        public object Settings => _settingObject;
+        public object Settings => _settingsObject;
 
         public int Api => 1;
 
@@ -180,7 +185,27 @@ namespace ExportSWC
         /// </summary>
         private void LoadSettings()
         {
-            _settingObject = new object();
+            if (!File.Exists(_settingsFilename))
+            {
+                SaveSettings();
+            }
+            else
+            {
+                _settingsObject = new ExportSWCSettings();
+                try
+                {
+                    if (File.Exists(_settingsFilename))
+                    {
+                        using var stream = File.Open(_settingsFilename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                        _settingsObject = (ExportSWCSettings)_settingsSerializer.ReadObject(stream);
+                    }
+                }
+                catch (Exception exc)
+                {
+                    ErrorManager.ShowError("Could not read ExportSWC settings file", exc);
+                }
+                //_settingsObject = ObjectSerializer.Deserialize<ExportSWCSettings>(_settingsFilename, _settingsObject);
+            }
         }
 
         /// <summary>
@@ -188,7 +213,10 @@ namespace ExportSWC
         /// </summary>
         private void SaveSettings()
         {
-            // noop
+            using var stream = File.Open(_settingsFilename, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            stream.SetLength(0);
+            _settingsSerializer.WriteObject(stream, Settings);
+            //ObjectSerializer.Serialize(_settingsFilename, Settings);
         }
 
         /// <summary>
@@ -202,7 +230,7 @@ namespace ExportSWC
                 Directory.CreateDirectory(dataPath);
             }
 
-            // settingFilename = Path.Combine(dataPath, "Settings.fdb");
+            _settingsFilename = Path.Combine(dataPath, "Settings.fdb");
             // pluginImage = LocaleHelper.GetImage("icon");
         }
 
