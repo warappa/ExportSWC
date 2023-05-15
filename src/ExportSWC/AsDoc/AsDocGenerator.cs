@@ -188,6 +188,10 @@ namespace ExportSWC.AsDoc
                                 .FirstOrDefault();
                             source = classX!.Attribute("sourcefile").Value;
                         }
+                        var originalComments = "<!CDATA[" + (entry.XPathEvaluate("description/text()") as IEnumerable)
+                                .OfType<XCData>()
+                                .FirstOrDefault()
+                                ?.Value;
                         var projectRelativeSource = source.Substring(context.ProjectFullPath.Length + 1);
 
                         if (!enumerator.MoveNext())
@@ -200,14 +204,20 @@ namespace ExportSWC.AsDoc
                         if (exceptionMatch.Success)
                         {
                             int.TryParse(exceptionMatch.Groups["columnnumber"].Value, out var column);
-                            int.TryParse(exceptionMatch.Groups["linenumber"].Value, out var lineNumber);
+                            int.TryParse(exceptionMatch.Groups["linenumber"].Value, out var originalLineNumber);
+
+                            var correctedOriginalLineNumber = (originalLineNumber + 1) / _asdocLineNumberReportCorrectionDivisor;
+                            var lineNumber = 1;
                             var message = exceptionMatch.Groups["message"]?.Value;
                             var fileModel = ASContext.Context.GetFileModel(projectRelativeSource);
-                            var memberStart = 0;
+                            var memberLineFrom = 0;
+                            var memberColumnFrom = 0;
+                            var comments = "";
+
+                            column -= 1; // FD is 0-based!
 
                             if (fileModel is not null)
                             {
-                                var comments = "";
                                 var classModel = fileModel?.GetClassByName(classname);
                                 if (classModel is not null)
                                 {
@@ -217,18 +227,242 @@ namespace ExportSWC.AsDoc
                                         if (memberModel is not null)
                                         {
                                             comments = memberModel.Comments;
-                                            memberStart = memberModel.LineFrom + 1;
+                                            memberLineFrom = memberModel.LineFrom + 1;
+                                            memberColumnFrom = memberModel.StartPosition;
                                         }
                                     }
                                     else
                                     {
                                         comments = classModel.Comments;
-                                        memberStart = classModel.LineFrom + 1;
+                                        memberLineFrom = classModel.LineFrom + 1;
+                                        memberColumnFrom = classModel.StartPosition;
                                     }
                                 }
+
+
                                 var commentLines = comments.Where(x => x == '\r').Count() + 1;
-                                lineNumber = commentLines - lineNumber / _asdocLineNumberReportCorrectionDivisor;
-                                lineNumber = memberStart - lineNumber;
+
+                                lineNumber = commentLines - (correctedOriginalLineNumber - 1);
+                                lineNumber = memberLineFrom - lineNumber;
+                            }
+
+                            var commentLine = "";
+                            var lineCounter = 1;
+                            var commentsIndex = 0;
+                            for (; commentsIndex < comments.Length; commentsIndex++)
+                            {
+                                if (lineCounter >= correctedOriginalLineNumber)
+                                {
+                                    break;
+                                }
+
+                                var c = comments[commentsIndex];
+                                if (c == '\r')
+                                {
+                                    lineCounter++;
+
+                                }
+
+                                if (lineCounter >= correctedOriginalLineNumber)
+                                {
+                                    commentsIndex++;
+                                    break;
+                                }
+
+                            }
+
+                            var lineCounterOrig = 1;
+                            var commentsIndexOrig = 8;
+                            for (; commentsIndexOrig < originalComments.Length; commentsIndexOrig++)
+                            {
+                                if (lineCounterOrig >= originalLineNumber)
+                                {
+                                    break;
+                                }
+
+                                var c = originalComments[commentsIndexOrig];
+                                if (c == '\n')
+                                {
+                                    lineCounterOrig++;
+
+                                }
+
+                                if (lineCounterOrig >= originalLineNumber)
+                                {
+                                    commentsIndexOrig++;
+                                    break;
+                                }
+
+                            }
+
+                            var stars = 0;
+                            for (var i = commentsIndex; i < comments.Length; i++)
+                            {
+                                var c = comments[i];
+                                if (c == '*')
+                                {
+                                    stars++;
+                                }
+                                if (c == '\r')
+                                {
+                                    break;
+                                }
+                            }
+
+                            if (lineCounter == 1)
+                            {
+                                column += -7 + 2 - 1;
+                                //column += -7 + 2 + stars -1;
+
+                                var additionalSpace = 0;
+                                for (int origI = commentsIndexOrig, fdI = commentsIndex; origI < originalComments.Length && originalComments[origI] != '\n';)
+                                {
+                                    var cFd = comments[fdI];
+                                    var cOrig = originalComments[origI];
+
+                                    if (cFd == '*')
+                                    {
+                                        do
+                                        {
+                                            fdI++;
+                                            additionalSpace++;
+                                        } while (fdI < comments.Length && ((cFd = comments[fdI]) == ' ' || cFd == '*'));
+                                        fdI--;
+                                    }
+                                    else if (cFd == cOrig)
+                                    {
+                                        origI++;
+                                    }
+                                    fdI++;
+                                }
+
+                                column += additionalSpace;
+                                // adjust indentation
+                                column += membername == "" ? 4 : 5;
+
+                                //if (commentsIndex != 0)
+                                //{
+                                //    column -= 2;
+                                //}
+                            }
+                            else
+                            if (true)
+                            {
+                                var additionalSpace = 0;
+                                for (int origI = commentsIndexOrig, fdI = commentsIndex; origI - commentsIndexOrig < column;)
+                                {
+                                    var cFd = comments[fdI];
+                                    var cOrig = originalComments[origI];
+
+                                    if (cFd == '*')
+                                    {
+                                        do
+                                        {
+                                            fdI++;
+                                            additionalSpace++;
+                                        } while (fdI < comments.Length && ((cFd = comments[fdI]) == ' ' || cFd == '*'));
+                                        fdI--;
+                                    }
+                                    else if (cFd == cOrig)
+                                    {
+                                        origI++;
+                                    }
+                                    fdI++;
+                                }
+
+                                column += additionalSpace - 1;
+
+                                //column += stars;
+                            }
+                            else if (false)
+                            {
+                                //for (var bla = commentsIndex; bla < comments.Length; bla++)
+                                //{
+                                //    var c = comments[bla];
+                                //    if (c == '\t')
+                                //    {
+                                //        column-=4 - 1; // tabsize
+                                //    }
+                                //    else if (!char.IsWhiteSpace(c))
+                                //    {
+                                //        break;
+                                //    }
+                                //}
+
+
+
+                                //if (commentsIndex + column + 2 < comments.Length &&
+                                //    char.IsWhiteSpace(comments[commentsIndex + column +2]) &&
+                                //    char.IsWhiteSpace(comments[commentsIndex + column + 1]))
+                                //{
+                                //    column -= 1;
+                                //}
+
+                                // at end of line
+                                if ((commentsIndex + column - 1 + 1 < comments.Length &&
+                                    comments[commentsIndex + column - 1 + 1] == '\r'))
+                                {
+                                    column -= 1;
+                                }
+
+                                //if (commentsIndex + column + 2 < comments.Length &&
+                                //    comments[commentsIndex + column + 2] == '\r')
+                                //{
+                                //    column -= 1;
+                                //}
+
+                                // at start of line
+                                if (column == 1)
+                                {
+                                    column -= 1;
+                                }
+
+                                var foundReturn = false;
+                                var foundOnlyWhitespace = true;
+                                for (var i = 0; i < commentsIndex; i++)
+                                {
+                                    if (comments[i] == '\r')
+                                    {
+                                        foundReturn = true;
+                                    }
+                                    if (!char.IsWhiteSpace(comments[i]))
+                                    {
+                                        foundOnlyWhitespace = false;
+                                        break;
+                                    }
+                                }
+
+                                var onlyWhitespaceTilStartOfLine = false;
+                                var whitespaceCount = 0;
+                                if (column <= 2)
+                                {
+                                    onlyWhitespaceTilStartOfLine = true;
+                                    for (var i = commentsIndex + column - 2; i >= commentsIndex; i--)
+                                    {
+                                        if (!char.IsWhiteSpace(comments[i]))
+                                        {
+                                            onlyWhitespaceTilStartOfLine = false;
+                                            break;
+                                        }
+                                        whitespaceCount++;
+                                    }
+                                }
+
+                                if (foundReturn &&
+                                    foundOnlyWhitespace)
+                                {
+                                    column = column - commentsIndex + 2;
+                                }
+                                else if (!foundOnlyWhitespace)
+                                {
+                                    column = column - 1;
+                                }
+
+
+                                if (onlyWhitespaceTilStartOfLine)
+                                {
+                                    column = whitespaceCount;
+                                }
                             }
 
                             var resultMessage = $"{projectRelativeSource}({lineNumber},{column}): {message}";
