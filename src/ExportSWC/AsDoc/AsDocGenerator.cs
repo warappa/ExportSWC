@@ -151,7 +151,7 @@ namespace ExportSWC.AsDoc
              * asdoc validation messages are exported to a file. The problem is that this output has double(!) the linebreaks than the source (and therefore FlashDevelop)!
              * To correct this we need to divide the reported line numbers by 2.
              * 
-             * Also, FlashDevelop strips the '*' in its comments representation, so the column is not in line with the original found in source code. We can work around
+             * Also, asdoc strips the '*' in its comments representation, so the column number is not in line with the original found in source code. We can work around
              * by finding the corresponding line in both sources, and then go char by char until the column value is reached. If both differ, just move on to the
              * next FlashDevelop comment character while the asdoc one stays on the same index until the same value is found again where both again increment.
             **/
@@ -219,12 +219,12 @@ namespace ExportSWC.AsDoc
                             int.TryParse(exceptionMatch.Groups["linenumber"].Value, out var originalLineNumber);
 
                             var correctedOriginalLineNumber = (originalLineNumber + 1) / _asdocLineNumberReportCorrectionDivisor;
-                            var lineNumber = 1;
+                            var absoluteFdLineNumber = 1;
                             var message = exceptionMatch.Groups["message"]?.Value;
                             var fileModel = ASContext.Context.GetFileModel(projectRelativeSource);
                             var memberLineFrom = 0;
-                            var memberColumnFrom = 0;
                             var comments = "";
+                            var isMember = false;
 
                             column -= _fdColumnOffset; // FD is 0-based!
 
@@ -240,21 +240,20 @@ namespace ExportSWC.AsDoc
                                         {
                                             comments = memberModel.Comments;
                                             memberLineFrom = memberModel.LineFrom + 1;
-                                            memberColumnFrom = CalculateCommentColumnIndentation(memberModel.Comments, true);
+                                            isMember = true;
                                         }
                                     }
                                     else
                                     {
                                         comments = classModel.Comments;
                                         memberLineFrom = classModel.LineFrom + 1;
-                                        memberColumnFrom = CalculateCommentColumnIndentation(classModel.Comments, false);
                                     }
                                 }
 
                                 var commentLines = comments.Where(x => x == '\r').Count() + 1;
 
-                                lineNumber = commentLines - (correctedOriginalLineNumber - 1);
-                                lineNumber = memberLineFrom - lineNumber;
+                                absoluteFdLineNumber = commentLines - (correctedOriginalLineNumber - 1);
+                                absoluteFdLineNumber = memberLineFrom - absoluteFdLineNumber;
                             }
 
                             var commentsLineStartIndex = GetStartIndexOfLineNumber(correctedOriginalLineNumber, comments, '\r', 0);
@@ -265,7 +264,8 @@ namespace ExportSWC.AsDoc
                                 column += -_cdataLength - 1;
 
                                 var additionalSpace = CalulateAdditionalSpace(column, originalComments, comments, commentsLineStartIndex, commentsLineStartIndexOrig);
-
+                                
+                                var memberColumnFrom = CalculateCommentColumnIndentation(comments, isMember);
                                 column += memberColumnFrom + additionalSpace;
                             }
                             else
@@ -275,7 +275,7 @@ namespace ExportSWC.AsDoc
                                 column += additionalSpace - _carriageReturnOffset;
                             }
 
-                            var resultMessage = $"{projectRelativeSource}({lineNumber},{column}): {message}";
+                            var resultMessage = $"{projectRelativeSource}({absoluteFdLineNumber},{column}): {message}";
                             WriteLine(resultMessage, TraceMessageType.Error);
                         }
                         line = null;
@@ -333,33 +333,6 @@ namespace ExportSWC.AsDoc
 
             return indent + 2;
         }
-
-        //private static int GetIndexOfOriginalLineNumber(string comments, int lineNumber)
-        //{
-        //    var commentsLineStartIndex = 8;
-        //    var lineCounter = 1;
-        //    for (; commentsLineStartIndex < comments.Length; commentsLineStartIndex++)
-        //    {
-        //        if (lineCounter >= lineNumber)
-        //        {
-        //            break;
-        //        }
-
-        //        var c = comments[commentsLineStartIndex];
-        //        if (c == '\n')
-        //        {
-        //            lineCounter++;
-        //        }
-
-        //        if (lineCounter >= lineNumber)
-        //        {
-        //            commentsLineStartIndex++;
-        //            break;
-        //        }
-        //    }
-
-        //    return commentsLineStartIndex;
-        //}
 
         private static int GetStartIndexOfLineNumber(int lineNumber, string comments, char newLineCharacter, int offset)
         {
@@ -423,9 +396,7 @@ namespace ExportSWC.AsDoc
                         fdI++;
                         additionalSpace++;
                         if (fdI < comments.Length &&
-                            comments[fdI] == ' '
-                             //&& cOrig != ' '
-                             )
+                            comments[fdI] == ' ')
                         {
                             fdI++;
                             additionalSpace++;
@@ -444,16 +415,6 @@ namespace ExportSWC.AsDoc
 
                 fdI++;
             }
-
-            //if (hadAsterisk)
-            //{
-            //    additionalSpace--; // some bug in algorithm
-            //}
-
-            //if (firstNonWhitespace != '*') // weird comment line
-            //{
-            //    additionalSpace--;
-            //}
 
             return additionalSpace;
         }
