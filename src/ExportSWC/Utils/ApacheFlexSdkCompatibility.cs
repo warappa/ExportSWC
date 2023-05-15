@@ -59,14 +59,12 @@ namespace ExportSWC.Utils
                 if (targetPlayerMajorVersion.StartsWith('%'))
                 {
                     env["TARGETPLAYER_MAJOR_VERSION"] = project.MovieOptions.Version.Substring(0, project.MovieOptions.Version.IndexOf('.'));
-                    Debug.WriteLine(env["TARGETPLAYER_MAJOR_VERSION"]);
                 }
                 var targetPlayerMinorVersion = Environment.ExpandEnvironmentVariables("%TARGETPLAYER_MINOR_VERSION%");
                 if (targetPlayerMinorVersion.StartsWith('%'))
                 {
                     var majorDot = project.MovieOptions.Version.IndexOf('.');
                     env["TARGETPLAYER_MINOR_VERSION"] = project.MovieOptions.Version.Substring(majorDot + 1);
-                    Debug.WriteLine(env["TARGETPLAYER_MINOR_VERSION"]);
                 }
 
                 var locale = Environment.ExpandEnvironmentVariables("%LOCALE%");

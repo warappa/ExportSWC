@@ -181,6 +181,11 @@ namespace ExportSWC
 
         private void InitProjectFile(AS3Project project, SWCProject swcProject)
         {
+            if (swcProject is null)
+            {
+                return;
+            }
+
             if (swcProject.FlexBinPath == "")
             {
                 swcProject.FlexBinPath = ".\\bin\\" + project.Name + ".swc";

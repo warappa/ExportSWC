@@ -39,7 +39,8 @@ namespace ExportSWC
                 _button_build_def = new ToolStripMenuItem
                 {
                     Text = "Build All",
-                    ToolTipText = LocaleHelper.GetString("Label.PluginButton")
+                    ToolTipText = LocaleHelper.GetString("Label.PluginButton"),
+                    Enabled = CurrentSwcProject is not null
                 };
                 _button_build_def.Font = new Font(_button_build_def.Font, FontStyle.Bold);
                 _button_build_def.Click += new EventHandler(Build);
@@ -48,7 +49,8 @@ namespace ExportSWC
                 _button_partial = new ToolStripMenuItem
                 {
                     Text = "Prebuild Meta",
-                    ToolTipText = LocaleHelper.GetString("Label.PartialBuildButton")
+                    ToolTipText = LocaleHelper.GetString("Label.PartialBuildButton"),
+                    Enabled = CurrentSwcProject is not null
                 };
                 _button_partial.Click += new EventHandler(PreBuildClick);
                 _button.DropDown.Items.Add(_button_partial);
@@ -56,7 +58,8 @@ namespace ExportSWC
                 _button_compile = new ToolStripMenuItem
                 {
                     Text = "Compile Targets",
-                    ToolTipText = LocaleHelper.GetString("Label.CompileButton")
+                    ToolTipText = LocaleHelper.GetString("Label.CompileButton"),
+                    Enabled = CurrentSwcProject is not null
                 };
                 _button_compile.Click += new EventHandler(CompileClick);
                 _button.DropDown.Items.Add(_button_compile);
@@ -91,18 +94,20 @@ namespace ExportSWC
         private void Configure(object sender, EventArgs e)
         {
             EnsureNotNull(CurrentProject);
-            EnsureNotNull(CurrentSwcProject);
 
             ConfigureSwcProject(CurrentProject, CurrentSwcProject);
         }
 
-        private void ConfigureSwcProject(AS3Project project, SWCProject swcProject)
+        private void ConfigureSwcProject(AS3Project project, SWCProject? swcProject)
         {
+            swcProject ??= new SWCProject();
+
             var dr = ProjectOptions.ShowDialog(swcProject);
 
             if (dr == DialogResult.OK)
             {
                 swcProject.Save(GetSwcProjectSettingsPath(project));
+                CurrentSwcProject = swcProject;
             }
         }
     }

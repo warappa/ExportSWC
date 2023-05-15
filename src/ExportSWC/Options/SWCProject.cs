@@ -71,13 +71,11 @@ namespace ExportSWC.Options
             sw.Close();
         }
 
-        public static SWCProject Load(string filename)
+        public static SWCProject? Load(string filename)
         {
             if (!File.Exists(filename))
             {
-                var newproj = new SWCProject();
-                newproj.Save(filename);
-                return newproj;
+                return null;
             }
 
             var xms = new XmlSerializer(typeof(SWCProject));

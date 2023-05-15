@@ -12,6 +12,11 @@ namespace ExportSWC
     {
         private void InjectContextMenuItems(ProjectTreeView tree)
         {
+            if (CurrentSwcProject is null)
+            {
+                return;
+            }
+
             EnsureNotNull(CurrentProjectPath);
             EnsureNotNull(CurrentSwcProject);
 
