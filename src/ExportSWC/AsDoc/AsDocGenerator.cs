@@ -22,7 +22,12 @@ namespace ExportSWC.AsDoc
 {
     internal class AsDocGenerator
     {
+        private static readonly Regex sourceRegex = new Regex("Text for description in (?<fullname>(?<namespace>[a-zA-Z0-9.]+):?(?<classname>[a-zA-Z0-9.]+)(/((?<modifier>[a-z]+):)?(?<member>[a-zA-Z0-9_]+))?)");
+        private static readonly Regex diagnosticsRegex = new Regex("lineNumber: (?<linenumber>[0-9]+); columnNumber: (?<columnnumber>[0-9]+); (?<message>.*)");
         private const int _asdocLineNumberReportCorrectionDivisor = 2;
+        private const int _cdataLength = 6;
+        private const int _fdColumnOffset = 1;
+        private const int _carriageReturnOffset = 1;
 
         private readonly ITraceable _tracer;
         private bool _anyErrors;
@@ -142,17 +147,24 @@ namespace ExportSWC.AsDoc
 
         private bool TryParseValidationErrorsLog(AsDocContext context, AS3Project project, string validationErrorLogPath, string toplevelXmlFilepath)
         {
+            /**
+             * asdoc validation messages are exported to a file. The problem is that this output has double(!) the linebreaks than the source (and therefore FlashDevelop)!
+             * To correct this we need to divide the reported line numbers by 2.
+             * 
+             * Also, FlashDevelop strips the '*' in its comments representation, so the column is not in line with the original found in source code. We can work around
+             * by finding the corresponding line in both sources, and then go char by char until the column value is reached. If both differ, just move on to the
+             * next FlashDevelop comment character while the asdoc one stays on the same index until the same value is found again where both again increment.
+            **/
+
             try
             {
                 // parse
                 var toplevelX = XDocument.Load(toplevelXmlFilepath);
 
-                var sourceRegex = new Regex("Text for description in (?<fullname>(?<namespace>[a-zA-Z0-9.]+):?(?<classname>[a-zA-Z0-9.]+)(/(?<modifier>[a-z]+):?(?<member>[a-zA-Z0-9_]+))?)");
-                var positionRegex = new Regex("lineNumber: (?<linenumber>[0-9]+); columnNumber: (?<columnnumber>[0-9]+); (?<message>.*)");
-
                 var lines = File.ReadLines(validationErrorLogPath);
                 var enumerator = lines.GetEnumerator();
                 string? line = null;
+
                 while (true)
                 {
                     if (line is null)
@@ -188,7 +200,7 @@ namespace ExportSWC.AsDoc
                                 .FirstOrDefault();
                             source = classX!.Attribute("sourcefile").Value;
                         }
-                        var originalComments = "<!CDATA[" + (entry.XPathEvaluate("description/text()") as IEnumerable)
+                        var originalComments = "CDATA[" + (entry.XPathEvaluate("description/text()") as IEnumerable)
                                 .OfType<XCData>()
                                 .FirstOrDefault()
                                 ?.Value;
@@ -198,9 +210,9 @@ namespace ExportSWC.AsDoc
                         {
                             break;
                         }
-                        var exception = enumerator.Current;
+                        var diagosticsLine = enumerator.Current;
 
-                        var exceptionMatch = positionRegex.Match(exception);
+                        var exceptionMatch = diagnosticsRegex.Match(diagosticsLine);
                         if (exceptionMatch.Success)
                         {
                             int.TryParse(exceptionMatch.Groups["columnnumber"].Value, out var column);
@@ -214,7 +226,7 @@ namespace ExportSWC.AsDoc
                             var memberColumnFrom = 0;
                             var comments = "";
 
-                            column -= 1; // FD is 0-based!
+                            column -= _fdColumnOffset; // FD is 0-based!
 
                             if (fileModel is not null)
                             {
@@ -228,17 +240,16 @@ namespace ExportSWC.AsDoc
                                         {
                                             comments = memberModel.Comments;
                                             memberLineFrom = memberModel.LineFrom + 1;
-                                            memberColumnFrom = memberModel.StartPosition;
+                                            memberColumnFrom = CalculateCommentColumnIndentation(memberModel.Comments, true);
                                         }
                                     }
                                     else
                                     {
                                         comments = classModel.Comments;
                                         memberLineFrom = classModel.LineFrom + 1;
-                                        memberColumnFrom = classModel.StartPosition;
+                                        memberColumnFrom = CalculateCommentColumnIndentation(classModel.Comments, false);
                                     }
                                 }
-
 
                                 var commentLines = comments.Where(x => x == '\r').Count() + 1;
 
@@ -246,70 +257,22 @@ namespace ExportSWC.AsDoc
                                 lineNumber = memberLineFrom - lineNumber;
                             }
 
-                            var commentLine = "";
-                            var lineCounter = 1;
-                            var commentsLineStartIndex = 0;
-                            for (; commentsLineStartIndex < comments.Length; commentsLineStartIndex++)
+                            var commentsLineStartIndex = GetStartIndexOfLineNumber(correctedOriginalLineNumber, comments, '\r', 0);
+                            var commentsLineStartIndexOrig = GetStartIndexOfLineNumber(originalLineNumber, originalComments, '\n', _cdataLength);
+
+                            if (correctedOriginalLineNumber == 1)
                             {
-                                if (lineCounter >= correctedOriginalLineNumber)
-                                {
-                                    break;
-                                }
-
-                                var c = comments[commentsLineStartIndex];
-                                if (c == '\r')
-                                {
-                                    lineCounter++;
-
-                                }
-
-                                if (lineCounter >= correctedOriginalLineNumber)
-                                {
-                                    commentsLineStartIndex++;
-                                    break;
-                                }
-
-                            }
-
-                            var lineCounterOrig = 1;
-                            var commentsLineStartIndexOrig = 8;
-                            for (; commentsLineStartIndexOrig < originalComments.Length; commentsLineStartIndexOrig++)
-                            {
-                                if (lineCounterOrig >= originalLineNumber)
-                                {
-                                    break;
-                                }
-
-                                var c = originalComments[commentsLineStartIndexOrig];
-                                if (c == '\n')
-                                {
-                                    lineCounterOrig++;
-
-                                }
-
-                                if (lineCounterOrig >= originalLineNumber)
-                                {
-                                    commentsLineStartIndexOrig++;
-                                    break;
-                                }
-
-                            }
-
-                            if (lineCounter == 1)
-                            {
-                                column += -7 + 2 - 1;
+                                column += -_cdataLength - 1;
 
                                 var additionalSpace = CalulateAdditionalSpace(column, originalComments, comments, commentsLineStartIndex, commentsLineStartIndexOrig);
 
-                                column += additionalSpace;
-                                // adjust indentation
-                                column += membername == "" ? 4 : 5;
+                                column += memberColumnFrom + additionalSpace;
                             }
                             else
                             {
                                 var additionalSpace = CalulateAdditionalSpace(column, originalComments, comments, commentsLineStartIndex, commentsLineStartIndexOrig);
 
-                                column += additionalSpace;
+                                column += additionalSpace - _carriageReturnOffset;
                             }
 
                             var resultMessage = $"{projectRelativeSource}({lineNumber},{column}): {message}";
@@ -333,20 +296,140 @@ namespace ExportSWC.AsDoc
             return true;
         }
 
+        /// <summary>
+        /// As there is no offset information we can only try heuristics
+        /// </summary>
+        /// <param name="comments"></param>
+        /// <returns></returns>
+        private int CalculateCommentColumnIndentation(string comments, bool isMember)
+        {
+            var indent = isMember ? 5 : 4;
+            int i = 0;
+            for (; i < comments.Length; i++)
+            {
+                var c = comments[i];
+                if (c == '\r')
+                {
+                    c++;
+                    break;
+                }
+            }
+            for (; i < comments.Length; i++)
+            {
+                var c = comments[i];
+                if (c == '\r')
+                {
+                    indent = 0;
+                }
+                else if (char.IsWhiteSpace(c))
+                {
+                    indent++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return indent + 2;
+        }
+
+        //private static int GetIndexOfOriginalLineNumber(string comments, int lineNumber)
+        //{
+        //    var commentsLineStartIndex = 8;
+        //    var lineCounter = 1;
+        //    for (; commentsLineStartIndex < comments.Length; commentsLineStartIndex++)
+        //    {
+        //        if (lineCounter >= lineNumber)
+        //        {
+        //            break;
+        //        }
+
+        //        var c = comments[commentsLineStartIndex];
+        //        if (c == '\n')
+        //        {
+        //            lineCounter++;
+        //        }
+
+        //        if (lineCounter >= lineNumber)
+        //        {
+        //            commentsLineStartIndex++;
+        //            break;
+        //        }
+        //    }
+
+        //    return commentsLineStartIndex;
+        //}
+
+        private static int GetStartIndexOfLineNumber(int lineNumber, string comments, char newLineCharacter, int offset)
+        {
+            var commentsLineStartIndex = offset;
+            var lineCounter = 1;
+            for (; commentsLineStartIndex < comments.Length; commentsLineStartIndex++)
+            {
+                if (lineCounter >= lineNumber)
+                {
+                    break;
+                }
+
+                var c = comments[commentsLineStartIndex];
+                if (c == newLineCharacter)
+                {
+                    lineCounter++;
+                }
+
+                if (lineCounter >= lineNumber)
+                {
+                    commentsLineStartIndex++;
+                    break;
+                }
+            }
+
+            return commentsLineStartIndex;
+        }
+
+        /// <summary>
+        /// As asterisks are stripped from the validation logs we have to manually calculate how many characters before the column need to be added to match with source column.
+        /// </summary>
+        /// <param name="column"></param>
+        /// <param name="originalComments"></param>
+        /// <param name="comments"></param>
+        /// <param name="commentsLineStartIndex"></param>
+        /// <param name="commentsLineStartIndexOrig"></param>
+        /// <returns></returns>
         private static int CalulateAdditionalSpace(int column, string originalComments, string comments, int commentsLineStartIndex, int commentsLineStartIndexOrig)
         {
             var additionalSpace = 0;
+            var hadAsterisk = false;
+            char? firstNonWhitespace = null;
+
             for (int origI = commentsLineStartIndexOrig, fdI = commentsLineStartIndex; origI - commentsLineStartIndexOrig < column;)
             {
                 var cFd = comments[fdI];
                 var cOrig = originalComments[origI];
+                
+                if (firstNonWhitespace is null &&
+                    !char.IsWhiteSpace(cFd))
+                {
+                    firstNonWhitespace = cFd;
+                }
 
                 if (cFd == '*')
                 {
+                    hadAsterisk = true;
+
                     do
                     {
                         fdI++;
                         additionalSpace++;
+                        if (fdI < comments.Length &&
+                            comments[fdI] == ' '
+                             //&& cOrig != ' '
+                             )
+                        {
+                            fdI++;
+                            additionalSpace++;
+                        }
                     } while (fdI < comments.Length && ((cFd = comments[fdI]) == '*'));
                     fdI--;
                 }
@@ -358,8 +441,19 @@ namespace ExportSWC.AsDoc
                 {
 
                 }
+
                 fdI++;
             }
+
+            //if (hadAsterisk)
+            //{
+            //    additionalSpace--; // some bug in algorithm
+            //}
+
+            //if (firstNonWhitespace != '*') // weird comment line
+            //{
+            //    additionalSpace--;
+            //}
 
             return additionalSpace;
         }
