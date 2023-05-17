@@ -140,11 +140,8 @@ namespace ExportSWC
                         }
                         else
                         {
-                            FilesTreeView = null;
-                            CurrentSwcProject = null;
+                            UnloadSWCProject();
                         }
-
-                        UpdateToolstrip();
                     }
                     else if (_settingsObject.OverrideBuildCommand &&
                         cmd == ProjectManagerEvents.BuildProject)
@@ -208,11 +205,16 @@ namespace ExportSWC
             CurrentSwcProject = SWCProject.Load(CurrentSWCProjectPath!);
 
             InitProjectFile(CurrentProject!, CurrentSwcProject!);
+
+            UpdateToolstrip();
         }
 
         private void UnloadSWCProject()
         {
             CurrentSwcProject = null;
+            FilesTreeView = null;
+
+            UpdateToolstrip();
         }
 
         private void InitProjectFile(AS3Project project, SWCProject swcProject)
