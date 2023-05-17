@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Runtime.Serialization.Json;
@@ -16,9 +15,7 @@ using PluginCore;
 using PluginCore.Helpers;
 using PluginCore.Localization;
 using PluginCore.Managers;
-using PluginCore.Utilities;
 using ProjectManager;
-using ProjectManager.Actions;
 using ProjectManager.Controls.TreeView;
 using ProjectManager.Projects.AS3;
 

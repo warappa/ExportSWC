@@ -2,7 +2,6 @@
 using System.IO;
 using ExportSWC.Options;
 using ExportSWC.Utils;
-using PluginCore;
 using ProjectManager.Projects;
 using ProjectManager.Projects.AS3;
 

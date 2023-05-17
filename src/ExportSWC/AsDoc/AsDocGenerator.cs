@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.Remoting.Lifetime;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using ASCompletion.Context;
-using ASCompletion.Model;
 using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
 using ExportSWC.Utils;

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using ProjectManager.Actions;
 using ProjectManager.Projects.AS3;
