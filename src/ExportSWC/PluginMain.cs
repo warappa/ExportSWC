@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Runtime.Serialization.Json;
@@ -16,6 +18,7 @@ using PluginCore.Localization;
 using PluginCore.Managers;
 using PluginCore.Utilities;
 using ProjectManager;
+using ProjectManager.Actions;
 using ProjectManager.Controls.TreeView;
 using ProjectManager.Projects.AS3;
 
@@ -124,7 +127,8 @@ namespace ExportSWC
             {
                 // Catches CurrentProject change event and display the active project path
                 case EventType.Command:
-                    var cmd = ((DataEvent)e).Action;
+                    var dataEvent = (DataEvent)e;
+                    var cmd = dataEvent.Action;
                     if (cmd == ProjectManagerEvents.Project)
                     {
                         var project = PluginBase.CurrentProject;
@@ -132,18 +136,15 @@ namespace ExportSWC
                         if (project != null &&
                             project.Language.ToLower() == "as3")
                         {
-                            CurrentSwcProject = SWCProject.Load(CurrentSWCProjectPath!);
-
-                            InitProjectFile(CurrentProject!, CurrentSwcProject);
-
-                            _button.Enabled = true;
+                            LoadSWCProject();
                         }
                         else
                         {
-                            _button.Enabled = false;
                             FilesTreeView = null;
                             CurrentSwcProject = null;
                         }
+
+                        UpdateToolstrip();
                     }
                     else if (_settingsObject.OverrideBuildCommand &&
                         cmd == ProjectManagerEvents.BuildProject)
@@ -154,6 +155,29 @@ namespace ExportSWC
                             e.Handled = true;
 
                             Build(null, null);
+                        }
+                    }
+                    else if (cmd == ProjectManagerEvents.FileMoved)
+                    {
+                        var data = (Hashtable)dataEvent.Data;
+                        var oldFullFilepath = (string)data["fromPath"];
+                        var newFullFilename = (string)data["toPath"];
+
+                        var oldExtension = Path.GetExtension(oldFullFilepath).ToLowerInvariant();
+                        var newExtension = Path.GetExtension(newFullFilename).ToLowerInvariant();
+
+                        if (oldExtension != newExtension)
+                        {
+                            if (oldExtension == ".lxml")
+                            {
+                                UnloadSWCProject();
+                            }
+                            else if (newExtension == ".lxml")
+                            {
+                                LoadSWCProject();
+                            }
+
+                            UpdateToolstrip();
                         }
                     }
 
@@ -177,6 +201,18 @@ namespace ExportSWC
 
                     break;
             }
+        }
+
+        private void LoadSWCProject()
+        {
+            CurrentSwcProject = SWCProject.Load(CurrentSWCProjectPath!);
+
+            InitProjectFile(CurrentProject!, CurrentSwcProject!);
+        }
+
+        private void UnloadSWCProject()
+        {
+            CurrentSwcProject = null;
         }
 
         private void InitProjectFile(AS3Project project, SWCProject swcProject)

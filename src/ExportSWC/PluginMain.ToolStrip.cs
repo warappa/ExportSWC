@@ -88,7 +88,21 @@ namespace ExportSWC
                     _button_override_default_build_command.Checked = _settingsObject.OverrideBuildCommand;
                 };
                 _button.DropDown.Items.Add(_button_override_default_build_command);
+
+                UpdateToolstrip();
             }
+        }
+
+        private void UpdateToolstrip()
+        {
+            _button.Enabled = PluginBase.CurrentProject?.Language.ToLowerInvariant() == "as3";
+
+            _button_build_def.Enabled =
+                _button_partial.Enabled =
+                _button_compile.Enabled =
+                CurrentSwcProject is not null;
+
+            _button_override_default_build_command.Enabled = _settingsObject.OverrideBuildCommand;
         }
 
         private void Configure(object sender, EventArgs e)
