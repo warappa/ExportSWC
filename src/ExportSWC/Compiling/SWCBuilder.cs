@@ -98,7 +98,7 @@ namespace ExportSWC.Compiling
             WriteLine("Build with ExportSWC", TraceMessageType.Message);
 
             RunPreBuildEvent(context);
-            
+
             WriteLine("Compile Flex SWC", TraceMessageType.Message);
 
             buildSuccess &= RunCompc(context, context.CompcConfigPathFlex);
@@ -132,7 +132,7 @@ namespace ExportSWC.Compiling
             }
 
             _running = true;
-            
+
             NotifyBuildStarted(project);
 
             var context = new CompileContext(project, swcProjectSettings);
@@ -865,6 +865,8 @@ namespace ExportSWC.Compiling
             // compiler options...
             var compiler = config.DocumentElement.CreateElement("compiler", null!);
 
+            compiler.CreateElement("debug", (!PluginMain.IsReleaseBuild(project)).ToString().ToLower());
+
             // compute-digest
             if (!isRuntimeSharedLibrary)
             {
@@ -1005,7 +1007,7 @@ namespace ExportSWC.Compiling
         private void NotifyBuildStarted(AS3Project project)
         {
             //var buildStartedEvent = new DataEvent(EventType.Command, "ProjectManager.BuildStarted", project.TargetBuild);
-            var buildStartedEvent = new DataEvent(EventType.Command, ProjectManagerEvents.BuildProject, project.CompilerOptions.OmitTraces ? "Release" : "Debug");
+            var buildStartedEvent = new DataEvent(EventType.Command, ProjectManagerEvents.BuildProject, PluginMain.IsReleaseBuild(project) ? "Release" : "Debug");
             EventManager.DispatchEvent(this, buildStartedEvent);
         }
 
@@ -1032,7 +1034,7 @@ namespace ExportSWC.Compiling
 
             var isError = line.IndexOf("Error:") > -1;
             _anyErrors |= isError;
-            
+
             if (isError)
             {
                 level = TraceMessageType.Error;

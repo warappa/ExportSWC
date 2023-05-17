@@ -2,12 +2,19 @@
 using System.IO;
 using ExportSWC.Options;
 using ExportSWC.Utils;
+using PluginCore;
+using ProjectManager.Projects;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
 {
     public partial class PluginMain
     {
+        internal static bool IsReleaseBuild(Project project)
+        {
+            return !ProjectManager.PluginMain.Settings.GetPrefs(project).DebugMode;
+        }
+
         private string? GetRelativePath(string rootPath, string targetPath)
         {
             EnsureNotNull(CurrentProjectPath);

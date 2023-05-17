@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Lifetime;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -264,7 +266,7 @@ namespace ExportSWC.AsDoc
                                 column += -_cdataLength - 1;
 
                                 var additionalSpace = CalulateAdditionalSpace(column, originalComments, comments, commentsLineStartIndex, commentsLineStartIndexOrig);
-                                
+
                                 var memberColumnFrom = CalculateCommentColumnIndentation(comments, isMember);
                                 column += memberColumnFrom + additionalSpace;
                             }
@@ -380,7 +382,7 @@ namespace ExportSWC.AsDoc
             {
                 var cFd = comments[fdI];
                 var cOrig = originalComments[origI];
-                
+
                 if (firstNonWhitespace is null &&
                     !char.IsWhiteSpace(cFd))
                 {
@@ -425,6 +427,8 @@ namespace ExportSWC.AsDoc
             var projectFullPath = context.ProjectFullPath;
 
             var arguments = "";
+
+            arguments += PluginMain.IsReleaseBuild(project) ? "" : " -debug";
 
             // source-path	
             arguments += " -source-path ";
