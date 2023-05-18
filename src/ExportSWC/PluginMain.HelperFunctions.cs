@@ -14,6 +14,18 @@ namespace ExportSWC
             return !ProjectManager.PluginMain.Settings.GetPrefs(project).DebugMode;
         }
 
+        internal static string GetObjDirectory(AS3Project project)
+        {
+            var projectFullpath = Path.GetFullPath(Path.GetDirectoryName(project.ProjectPath));
+            var objDirectory = $@"{Path.Combine(projectFullpath, "obj")}\";
+            if (!Directory.Exists(objDirectory))
+            {
+                Directory.CreateDirectory(objDirectory);
+            }
+
+            return objDirectory;
+        }
+
         private string? GetRelativePath(string rootPath, string targetPath)
         {
             EnsureNotNull(CurrentProjectPath);

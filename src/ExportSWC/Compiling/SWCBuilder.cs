@@ -58,31 +58,47 @@ namespace ExportSWC.Compiling
             //var clearResultsCommand = new DataEvent(EventType.Command, "ResultsPanel.ClearResults", null);
             //EventManager.DispatchEvent(this, clearResultsCommand);
 
+            ClearOutput();
+
+            WriteLine("");
+            WriteLine("Build with ExportSWC", TraceMessageType.Message);
+
             NotifyBuildStarted(project);
 
-            var context = new CompileContext(project, swcProjectSettings);
+            var framework = CompileContext.GetIsAir(project) ? Framework.Air : Framework.Flex;
+            var flexOrAirContext = new CompileContext(project, swcProjectSettings, framework);
+
+            var flashContext = swcProjectSettings.MakeCS3 ? new CompileContext(project, swcProjectSettings, Framework.Flash) : null;
 
             BuildActions.GetCompilerPath(project); // use correct SDK
 
             try
             {
-                CleanupOutputFiles(context);
+                CleanupOutputFiles(flexOrAirContext);
+                CleanupOutputFiles(flashContext);
 
-                PreBuild(context);
+                WriteLine($"Building {flexOrAirContext.Framework} SWC");
+                var success = CompileWithCleanup(flexOrAirContext);
 
-                var success = Compile(context);
-
-                if (!success)
+                if (success == true)
                 {
-                    NotifyBuildFailed(project);
+                    WriteLine($"Building {flashContext.Framework} SWC");
+                    success = CompileWithCleanup(flashContext) ?? success;
+                }
 
-                    CleanupOutputFiles(context);
+                if (success == true ||
+                    project.AlwaysRunPostBuild)
+                {
+                    RunPostBuildEvent(project);
+                }
+
+                if (success == true)
+                {
+                    NotifyBuildSucceeded(project);
                 }
                 else
                 {
-                    MoveOutputFilesToOutputLocations(context);
-
-                    NotifyBuildSucceeded(project);
+                    NotifyBuildFailed(project);
                 }
             }
             finally
@@ -91,59 +107,67 @@ namespace ExportSWC.Compiling
             }
         }
 
-        private void MoveOutputFilesToOutputLocations(CompileContext context)
+        private void ClearOutput()
         {
-            if (File.Exists(context.CompcOutputPathFlex))
-            {
-                File.Delete(context.CompcOutputPathFlex);
-            }
-
-            WriteLine($"Move Flex SWC to '{context.CompcOutputPathFlex}'", TraceMessageType.Verbose);
-            File.Move(context.TempCompcOutputPathFlex, context.CompcOutputPathFlex);
-
-            if (context.SwcProjectSettings.MakeCS3)
-            {
-                if (File.Exists(context.CompcOutputPathFlash))
-                {
-                    File.Delete(context.CompcOutputPathFlash);
-                }
-
-                File.Move(context.TempCompcOutputPathFlash, context.CompcOutputPathFlash);
-                WriteLine($"Move Flash SWC to '{context.CompcOutputPathFlex}'", TraceMessageType.Verbose);
-            }
+            //Clear Outputpanel
+            var ne = new NotifyEvent(EventType.ProcessStart);
+            EventManager.DispatchEvent(this, ne);
         }
 
-        protected bool Compile(CompileContext context)
+        private bool? CompileWithCleanup(CompileContext? context)
         {
+            PreBuild(context);
+
+            var success = CompileInternal(context);
+            if (success == true)
+            {
+                MoveOutputFilesToOutputLocations(context);
+            }
+            else
+            {
+                CleanupOutputFiles(context);
+            }
+
+            return success;
+        }
+
+        private void MoveOutputFilesToOutputLocations(CompileContext context)
+        {
+            if (File.Exists(context.CompcOutputPath))
+            {
+                File.Delete(context.CompcOutputPath);
+            }
+
+            WriteLine($"Move {context.Framework} SWC to '{context.CompcOutputPath}'", TraceMessageType.Verbose);
+            File.Move(context.TempCompcOutputPath, context.CompcOutputPath);
+        }
+
+        private bool? CompileInternal(CompileContext? context)
+        {
+            if (context == null)
+            {
+                return null;
+            }
+
             var buildSuccess = true;
 
             SaveModifiedDocuments();
 
-            WriteLine("");
-            WriteLine("Build with ExportSWC", TraceMessageType.Message);
-
             RunPreBuildEvent(context);
 
-            WriteLine("Compile Flex SWC", TraceMessageType.Message);
+            WriteLine("");
+            WriteLine($"Compile {context.Framework} SWC", TraceMessageType.Message);
 
-            buildSuccess &= RunCompc(context, context.CompcConfigPathFlex, context.TempCompcOutputPathFlex, context.SwcProjectSettings.FlexIgnoreClasses);
-            if (context.SwcProjectSettings.MakeCS3)
+            buildSuccess &= RunCompc(context);
+
+            if (context.Framework == Framework.Flash &&
+                context.SwcProjectSettings.MakeCS3)
             {
-                WriteLine("");
-                WriteLine("Compile Flash SWC", TraceMessageType.Message);
-
-                buildSuccess &= RunCompc(context, context.CompcConfigPathFlash, context.TempCompcOutputPathFlash, context.SwcProjectSettings.CS3IgnoreClasses);
                 PatchFlashSWC(context);
                 if (context.SwcProjectSettings.LaunchAEM)
                 {
                     buildSuccess &= BuildMXP(context);
                 }
-            }
-
-            if (buildSuccess ||
-                context.Project.AlwaysRunPostBuild)
-            {
-                RunPostBuildEvent(context);
             }
 
             return buildSuccess;
@@ -160,14 +184,36 @@ namespace ExportSWC.Compiling
 
             NotifyBuildStarted(project);
 
-            var context = new CompileContext(project, swcProjectSettings);
+            ClearOutput();
+
+            WriteLine("");
+            WriteLine("Build with ExportSWC", TraceMessageType.Message);
+
+            var framework = CompileContext.GetIsAir(project) ? Framework.Air : Framework.Flex;
+            var flexOrAirContext = new CompileContext(project, swcProjectSettings, framework);
+
+            var flashContext = swcProjectSettings.MakeCS3 ? new CompileContext(project, swcProjectSettings, Framework.Flash) : null;
+
             BuildActions.GetCompilerPath(project); // use correct SDK
 
             try
             {
-                var success = Compile(context);
+                CleanupOutputFiles(flexOrAirContext);
+                CleanupOutputFiles(flashContext);
 
-                if (success)
+                var success = CompileWithCleanup(flexOrAirContext);
+                if (success == true)
+                {
+                    success = CompileWithCleanup(flashContext) ?? success;
+                }
+
+                if (success == true ||
+                    project.AlwaysRunPostBuild)
+                {
+                    RunPostBuildEvent(project);
+                }
+
+                if (success == true)
                 {
                     NotifyBuildSucceeded(project);
                 }
@@ -191,13 +237,29 @@ namespace ExportSWC.Compiling
 
             _running = true;
 
-            var context = new CompileContext(project, swcProjectSettings);
+            ClearOutput();
+
+            WriteLine("");
+            WriteLine("Build with ExportSWC", TraceMessageType.Message);
+
+            var framework = CompileContext.GetIsAir(project) ? Framework.Air : Framework.Flex;
+            var flexOrAirContext = new CompileContext(project, swcProjectSettings, framework);
+
+            var flashContext = swcProjectSettings.MakeCS3 ? new CompileContext(project, swcProjectSettings, Framework.Flash) : null;
 
             BuildActions.GetCompilerPath(project); // use correct SDK
 
             try
             {
-                PreBuild(context);
+                PreBuild(flexOrAirContext);
+                PreBuild(flashContext);
+
+                WriteLine("");
+                WriteLine("Prebuild successful", TraceMessageType.Message);
+            }
+            catch
+            {
+                WriteLine("Prebuild failed", TraceMessageType.Error);
             }
             finally
             {
@@ -230,9 +292,9 @@ namespace ExportSWC.Compiling
             process.WaitForExit(15000);
         }
 
-        protected void RunPostBuildEvent(CompileContext context)
+        protected void RunPostBuildEvent(AS3Project project)
         {
-            var hasBuildEvent = context.Project.PostBuildEvent.Trim().Length >= 0;
+            var hasBuildEvent = project.PostBuildEvent.Trim().Length >= 0;
             if (hasBuildEvent)
             {
                 return;
@@ -241,7 +303,7 @@ namespace ExportSWC.Compiling
             WriteLine("");
             WriteLine("Run post-build", TraceMessageType.Message);
 
-            var command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(context.Project.PostBuildEvent, true);
+            var command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(project.PostBuildEvent, true);
 
             var process = new Process();
             var processStI = new ProcessStartInfo
@@ -296,11 +358,12 @@ namespace ExportSWC.Compiling
             WriteLine("Patch Flash SWC", TraceMessageType.Message);
 
             var livePreviewFile = false;
-            var file = context.CompcOutputPathFlash;
+            var file = context.TempCompcOutputPath;
             var swcProjectSettings = context.SwcProjectSettings;
 
             if (!File.Exists(file))
             {
+                WriteLine($"Flash SWC file '{file}' not found", TraceMessageType.Warning);
                 return; // TODO: display error
             }
 
@@ -578,12 +641,13 @@ namespace ExportSWC.Compiling
             } while (c > 0);
         }
 
-        protected bool RunCompc(CompileContext context, string confpath, string tempOutputFilepath, List<string> ignoreClasses)
+        protected bool RunCompc(CompileContext context)
         {
             var project = context.Project;
             var projectFullPath = context.ProjectFullPath;
             var sdkBase = context.SdkBase;
             var swcProjectSettings = context.SwcProjectSettings;
+            var confpath = context.CompcConfigPath;
 
             var env = new Dictionary<string, string>();
 
@@ -603,7 +667,7 @@ namespace ExportSWC.Compiling
 
                 var cmdArgs = "";
                 // prevent flaky builds by specifying configname explicitly
-                cmdArgs += $"+configname={(context.IsAir ? "air" : "flex")}";
+                cmdArgs += $" +configname={(context.IsAirSdk ? "air" : "flex")}";
 
                 // generate arguments based on config, additional configs, and additional user arguments
                 cmdArgs += $@" -load-config+=""{confpath}""";
@@ -646,6 +710,23 @@ namespace ExportSWC.Compiling
 
                 var success = process.HostedProcess!.ExitCode == 0;
 
+                if (success)
+                {
+                    PluginBase.MainForm.StatusLabel.Text = "Compile successful";
+
+                    WriteLine("");
+                    WriteLine($"Compile successful ({process.HostedProcess.ExitCode}).", TraceMessageType.Message);
+                }
+                else
+                {
+                    PluginBase.MainForm.StatusLabel.Text = "Compile failed";
+
+                    WriteLine("");
+                    WriteLine($"Compile failed ({process.HostedProcess.ExitCode}).", TraceMessageType.Error);
+
+                    CleanupOutputFiles(context);
+                }
+
                 Control.CheckForIllegalCrossThreadCalls = false;
 
                 // Include AsDoc if FlexSdkVersion >= 4
@@ -653,34 +734,27 @@ namespace ExportSWC.Compiling
                     swcProjectSettings.IntegrateAsDoc &&
                     context.IsAsDocIntegrationAvailable)
                 {
-                    var framework = tempOutputFilepath == context.TempCompcOutputPathFlex ? "flex" : "flash";
-                    var asdocConfigFilepath = $"{context.ObjDirectory}{project.Name}.{framework}.asdoc.xml";
+                    var framework = context.Framework.ToString().ToLower();
 
                     var generator = new AsDocGenerator(_tracer);
-                    var asDocContext = new AsDocContext(
-                        project,
-                        swcProjectSettings,
-                        sdkBase,
-                        context.TargetVersion,
-                        context.IsAir,
-                        tempOutputFilepath,
-                        asdocConfigFilepath,
-                        ignoreClasses);
-
-                    _anyErrors |= !generator.IncludeAsDoc(asDocContext);
+                    _anyErrors |= !generator.IncludeAsDoc(context.AsDocContext!);
                 }
 
                 success = success && !_anyErrors;
 
                 if (success)
                 {
-                    PluginBase.MainForm.StatusLabel.Text = "Build Successful.";
-                    WriteLine($"Build Successful ({process.HostedProcess.ExitCode}).", TraceMessageType.Message);
+                    PluginBase.MainForm.StatusLabel.Text = "Merge documentation successful.";
+
+                    WriteLine("");
+                    WriteLine($"Merge documentation successful ({process.HostedProcess.ExitCode}).", TraceMessageType.Message);
                 }
                 else
                 {
-                    PluginBase.MainForm.StatusLabel.Text = "Build failed.";
-                    WriteLine($"Build failed ({process.HostedProcess.ExitCode}).", TraceMessageType.Error);
+                    PluginBase.MainForm.StatusLabel.Text = "Merge documentation failed.";
+
+                    WriteLine("");
+                    WriteLine($"Merge documentation failed ({process.HostedProcess.ExitCode}).", TraceMessageType.Error);
 
                     CleanupOutputFiles(context);
                 }
@@ -701,31 +775,23 @@ namespace ExportSWC.Compiling
             }
         }
 
-        private void CleanupOutputFiles(CompileContext context)
+        private void CleanupOutputFiles(CompileContext? context)
         {
+            if (context is null)
+            {
+                return;
+            }
+
             try
             {
-                if (File.Exists(context.TempCompcOutputPathFlex))
+                if (File.Exists(context.TempCompcOutputPath))
                 {
-                    File.Delete(context.TempCompcOutputPathFlex);
+                    File.Delete(context.TempCompcOutputPath);
                 }
 
-                if (File.Exists(context.CompcOutputPathFlex))
+                if (File.Exists(context.CompcOutputPath))
                 {
-                    File.Delete(context.CompcOutputPathFlex);
-                }
-
-                if (context.SwcProjectSettings.MakeCS3)
-                {
-                    if (File.Exists(context.TempCompcOutputPathFlash))
-                    {
-                        File.Delete(context.TempCompcOutputPathFlash);
-                    }
-
-                    if (File.Exists(context.CompcOutputPathFlash))
-                    {
-                        File.Delete(context.CompcOutputPathFlash);
-                    }
+                    File.Delete(context.CompcOutputPath);
                 }
             }
             catch
@@ -734,26 +800,38 @@ namespace ExportSWC.Compiling
             }
         }
 
-        protected void PreBuild(CompileContext context)
+        protected void PreBuild(CompileContext? context)
         {
+            if (context is null)
+            {
+                return;
+            }
+
             WriteLine("");
-            WriteLine("Run pre-build", TraceMessageType.Message);
+            WriteLine($"Run pre-build for {context.Framework}", TraceMessageType.Message);
 
             var swcProjectSettings = context.SwcProjectSettings;
 
-            //Clear Outputpanel
-            var ne = new NotifyEvent(EventType.ProcessStart);
-            EventManager.DispatchEvent(this, ne);
+            var isRuntimeSharedLibrary = context.Framework != Framework.Flash;
+            var ignoreClasses = context.Framework != Framework.Flash ? context.SwcProjectSettings.FlexIgnoreClasses : context.SwcProjectSettings.CS3IgnoreClasses;
 
-            CreateCompcConfig(context, context.CompcConfigPathFlex, context.TempCompcOutputPathFlex, true, context.SwcProjectSettings.FlexIgnoreClasses);
-            if (swcProjectSettings.FlexIncludeASI)
+            CreateCompcConfig(context, context.CompcConfigPath, context.TempCompcOutputPath, isRuntimeSharedLibrary, ignoreClasses);
+
+            if (context.IsAsDocIntegrationAvailable)
+            {
+                var generator = new AsDocGenerator(_tracer);
+                generator.CreateAsDocConfig(context.AsDocContext!);
+            }
+
+            if (context.Framework == Framework.Flex &&
+                swcProjectSettings.FlexIncludeASI)
             {
                 PreBuild_Asi(context);
             }
 
-            if (swcProjectSettings.MakeCS3)
+            if (context.Framework == Framework.Flash &&
+                swcProjectSettings.MakeCS3)
             {
-                CreateCompcConfig(context, context.CompcConfigPathFlash, context.TempCompcOutputPathFlash, false, swcProjectSettings.CS3IgnoreClasses);
                 if (swcProjectSettings.MakeMXI)
                 {
                     if (swcProjectSettings.MXPIncludeASI &&
@@ -850,7 +928,7 @@ namespace ExportSWC.Compiling
             pro.SetAttribute("primary", "true");
 
             var fil = doc.DocumentElement.CreateElement("files").CreateElement("file");
-            fil.SetAttribute("name", Path.GetFileName(context.CompcOutputPathFlash));
+            fil.SetAttribute("name", Path.GetFileName(context.CompcOutputPath));
             fil.SetAttribute("destination", "$flash/Components/" + swcProjectSettings.CS3ComponentGroup);
 
             doc.Save(outfile);
@@ -860,8 +938,7 @@ namespace ExportSWC.Compiling
         {
             var project = context.Project;
 
-            //TraceManager.Add("Prebuilding config " + confout + "...");
-            WriteLine("Prebuilding config " + configFilepath + "...");
+            WriteLine($"Prebuilding config {configFilepath}...");
 
             // build the config file
             var config = new XmlDocument();
@@ -930,7 +1007,8 @@ namespace ExportSWC.Compiling
             compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
 
             // compute-digest
-            if (!isRuntimeSharedLibrary)
+            if (!isRuntimeSharedLibrary &&
+                context.Framework != Framework.Flash)
             {
                 config.DocumentElement.CreateElement("compute-digest", "false");
             }
@@ -1009,7 +1087,7 @@ namespace ExportSWC.Compiling
             config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
             config.Save(configFilepath);
             //TraceManager.AddAsync("Configuration writen to: " + confout, 2);
-            WriteLine("Configuration written to: " + configFilepath);
+            WriteLine($"Configuration written to: {configFilepath}");
 
         }
 
@@ -1054,12 +1132,18 @@ namespace ExportSWC.Compiling
 
         private void NotifyBuildSucceeded(AS3Project project)
         {
+            PluginBase.MainForm.StatusLabel.Text = "Build successful";
+            WriteLine($"Build successful", TraceMessageType.Message);
+
             var buildCompleteEvent = new DataEvent(EventType.Command, ProjectManagerEvents.BuildComplete, project);
             EventManager.DispatchEvent(this, buildCompleteEvent);
         }
 
         private void NotifyBuildFailed(AS3Project project)
         {
+            PluginBase.MainForm.StatusLabel.Text = "Build failed";
+            WriteLine($"Build failed", TraceMessageType.Message);
+
             var buildCompleteEvent = new DataEvent(EventType.Command, ProjectManagerEvents.BuildFailed, project);
             EventManager.DispatchEvent(this, buildCompleteEvent);
         }

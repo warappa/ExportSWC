@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using ExportSWC.Options;
+using ExportSWC.Compiling;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC.AsDoc
@@ -8,36 +8,38 @@ namespace ExportSWC.AsDoc
     internal class AsDocContext
     {
         private string? _projectFullPath;
-        private string _objDirectory;
 
-        public AsDocContext(AS3Project project, SWCProject swcProjectSettings, string sdkBase, string targetVersion, bool isAir, string outputPath, string asDocConfigFilepath, List<string> flexIgnoreClasses)
+        public AsDocContext(AS3Project project, string sdkBase, string targetVersion, Framework framework, string outputPath, string asDocConfigFilepath, List<string> ignoreClasses)
         {
             Project = project;
-            SwcProjectSettings = swcProjectSettings;
             SdkBase = sdkBase;
             TargetVersion = targetVersion;
-            IsAir = isAir;
-            FlexOutputPath = outputPath;
+            Framework = framework;
+            IsAirSdk = File.Exists(Path.Combine(SdkBase, $"air-sdk-description.xml"));
+            SWCOutputPath = outputPath;
             AsDocConfigFilepath = asDocConfigFilepath;
-            FlexIgnoreClasses = flexIgnoreClasses;
+            IgnoreClasses = ignoreClasses;
+            TempPath = Path.Combine(Path.GetTempPath(), framework.ToString());
         }
 
         public AS3Project Project { get; }
-
-        public SWCProject SwcProjectSettings { get; }
 
         public string SdkBase { get; }
 
         public string ProjectFullPath => _projectFullPath ??= new DirectoryInfo(Project.Directory).FullName;
 
-        public bool IsAir { get; }
+        public bool IsAirSdk { get; }
         
         public string TargetVersion { get; }
         
-        public List<string> FlexIgnoreClasses { get; } = new List<string>();
+        public List<string> IgnoreClasses { get; } = new List<string>();
         
-        public string FlexOutputPath { get; }
+        public string SWCOutputPath { get; }
 
         public string AsDocConfigFilepath { get; }
+
+        public string TempPath { get; }
+
+        public Framework Framework { get; }
     }
 }

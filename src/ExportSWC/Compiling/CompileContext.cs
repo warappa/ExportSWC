@@ -4,6 +4,8 @@ using ProjectManager.Projects.AS3;
 using System.Xml;
 using ProjectManager.Actions;
 using ExportSWC.Options;
+using ExportSWC.AsDoc;
+using System.Collections.Generic;
 
 namespace ExportSWC.Compiling
 {
@@ -12,17 +14,38 @@ namespace ExportSWC.Compiling
         private string? _projectFullPath;
         private string? _sdkBase;
         private string? _objDirectory;
+        private bool _isAir;
         private Version? _sdkVersion;
+        private AsDocContext _asDocContext;
+        private readonly Framework _framework;
 
-        public CompileContext(AS3Project project, SWCProject swcProjectSettings)
+        public CompileContext(AS3Project project, SWCProject swcProjectSettings, Framework framework)
         {
             Project = project;
             SwcProjectSettings = swcProjectSettings;
+            _framework = framework;
+            _objDirectory = PluginMain.GetObjDirectory(project);
+            _isAir = File.Exists(Path.Combine(SdkBase, $"air-sdk-description.xml"));
+
+            if (swcProjectSettings.IntegrateAsDoc &&
+                IsAsDocIntegrationAvailable)
+            {
+                _asDocContext = new AsDocContext(
+                    project,
+                    SdkBase,
+                    TargetVersion,
+                    Framework,
+                    TempCompcOutputPath,
+                    AsDocConfigFilepath,
+                    IgnoreClasses);
+            }
         }
 
         public AS3Project Project { get; }
 
         public SWCProject SwcProjectSettings { get; }
+
+        public Framework Framework => _framework;
 
         public string ProjectFullPath => _projectFullPath ??= new DirectoryInfo(Project.Directory).FullName;
 
@@ -31,24 +54,7 @@ namespace ExportSWC.Compiling
         /// </summary>
         public string SdkBase => _sdkBase ??= BuildActions.GetCompilerPath(Project);
 
-        public bool IsAir => ExtractPlatform() == "AIR";
-
-        public virtual string? ExtractPlatform()
-        {
-            // expected from project manager: "Flash Player;9.0;path;path..."
-            var platform = Project.MovieOptions.Platform;
-            var exPath = platform ?? "";
-            if (exPath.Length > 0)
-            {
-                var p = exPath.IndexOf(';');
-                if (p >= 0)
-                {
-                    platform = exPath.Substring(0, p);
-                }
-            }
-
-            return platform;
-        }
+        public bool IsAirSdk => _isAir;
 
         /// <summary>
         /// The SDK Version.
@@ -63,12 +69,12 @@ namespace ExportSWC.Compiling
                 }
                 else
                 {
-                    var discriminator = IsAir ? "air" : "flex";
+                    var discriminator = IsAirSdk ? "air" : "flex";
 
                     var sdkDescriptionFilepath = Path.Combine(SdkBase, $"{discriminator}-sdk-description.xml");
                     if (!File.Exists(sdkDescriptionFilepath))
                     {
-                        if (IsAir)
+                        if (IsAirSdk)
                         {
                             // try fall back to flex
                             discriminator = "flex";
@@ -87,7 +93,7 @@ namespace ExportSWC.Compiling
                     var versionNode = doc.SelectSingleNode($"{discriminator}-sdk-description/version");
                     var buildNode = doc.SelectSingleNode($"{discriminator}-sdk-description/build");
 
-                    var versionParts = versionNode.InnerText.Split(new char[] { '.' },StringSplitOptions.RemoveEmptyEntries);
+                    var versionParts = versionNode.InnerText.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
 
                     _sdkVersion = new Version(
                         int.Parse(versionParts[0]),
@@ -108,12 +114,12 @@ namespace ExportSWC.Compiling
             get
             {
                 // Patch: Use custom SDK path (if available)
-                if (!IsAir &&
+                if (Framework == Framework.Flex &&
                     EnsureNotNull(SdkVersion).Major >= 4)
                 {
                     return true;
                 }
-                else if (IsAir) //???
+                else if (IsAirSdk) //???
                 {
                     return true;
                 }
@@ -122,34 +128,46 @@ namespace ExportSWC.Compiling
             }
         }
 
-        public string ObjDirectory
-        {
-            get
-            {
-                if(_objDirectory is not null)
-                {
-                    return _objDirectory;
-                }
+        public AsDocContext? AsDocContext => _asDocContext;
 
-                _objDirectory = $@"{Path.Combine(ProjectFullPath, "obj")}\";
-                if (!Directory.Exists(_objDirectory))
-                {
-                    Directory.CreateDirectory(_objDirectory);
-                }
-
-                return _objDirectory;
-            }
-        }
-
-        public string CompcConfigPathFlex => $"{ObjDirectory}{Project.Name}.flex.compc.xml";
-        public string CompcConfigPathFlash => $"{ObjDirectory}{Project.Name}.flash.compc.xml";
-        public string CompcOutputPathFlex => Path.Combine(ProjectFullPath, SwcProjectSettings.FlexBinPath);
-        public string TempCompcOutputPathFlex => $"{ObjDirectory}temp.flex.compc.swc";
-        public string CompcOutputPathFlash => Path.Combine(ProjectFullPath, SwcProjectSettings.FlashBinPath);
-        public string TempCompcOutputPathFlash => $"{ObjDirectory}temp.flash.compc.swc";
-        public string MXIPath => $"{ObjDirectory}{Project.Name}.mxi";
+        public string CompcConfigPath => $"{_objDirectory}{Project.Name}.{_framework.ToString().ToLowerInvariant()}.compc.xml";
+        public string CompcOutputPath => Path.Combine(ProjectFullPath, Framework == Framework.Flash ? SwcProjectSettings.FlashBinPath : SwcProjectSettings.FlexBinPath);
+        public string AsDocConfigFilepath => $"{_objDirectory}{Project.Name}.{_framework.ToString().ToLowerInvariant()}.asdoc.xml";
+        public string TempCompcOutputPath => $"{_objDirectory}temp.{_framework.ToString().ToLowerInvariant()}.compc.swc";
+        public List<string> IgnoreClasses => Framework == Framework.Flash ? SwcProjectSettings.CS3IgnoreClasses : SwcProjectSettings.FlexIgnoreClasses;
+        public string MXIPath => $"{_objDirectory}{Project.Name}.mxi";
         public string ASIDir => Path.Combine(ProjectFullPath, "asi");
         public string SWCProjectSettingsPath => Path.Combine(ProjectFullPath, $"{Project.Name}.lxml");
         public string TargetVersion => Project.MovieOptions.Version;
+
+        public static bool GetIsAir(AS3Project project)
+        {
+            var platform = ExtractPlatform(project);
+            if (platform == "air")
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static string? ExtractPlatform(AS3Project project)
+        {
+            // expected from project manager: "Flash Player;9.0;path;path..."
+            var platform = project.MovieOptions.Platform;
+            var exPath = platform ?? "";
+            if (exPath.Length > 0)
+            {
+                var p = exPath.IndexOf(';');
+                if (p >= 0)
+                {
+                    platform = exPath.Substring(0, p);
+                }
+            }
+
+            platform = platform?.ToLowerInvariant();
+
+            return platform;
+        }
     }
 }

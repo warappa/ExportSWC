@@ -15,8 +15,6 @@ using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
 using ExportSWC.Utils;
 using ICSharpCode.SharpZipLib.Zip;
-using Microsoft.CodeAnalysis.Semantics;
-using Mono.CSharp;
 using PluginCore;
 using PluginCore.Utilities;
 using ProjectManager.Projects.AS3;
@@ -40,27 +38,38 @@ namespace ExportSWC.AsDoc
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
         }
 
+        public void CreateAsDocConfig(AsDocContext context)
+        {
+            var configFilepath = context.AsDocConfigFilepath;
+            var tempPath = context.TempPath;
+
+            CreateAsDocConfig(context, configFilepath, tempPath, context.Framework != Framework.Flash, context.IgnoreClasses);
+        }
+
         public bool IncludeAsDoc(AsDocContext context)
         {
             var project = context.Project;
+            var tempPath = context.TempPath;
+            var configFilepath = context.AsDocConfigFilepath;
 
             WriteLine("");
             WriteLine("Building documentation", TraceMessageType.Message);
-            if (!File.Exists(context.FlexOutputPath))
+
+            if (!File.Exists(context.SWCOutputPath))
             {
-                WriteLine($"File '{context.FlexOutputPath}' not found");
+                WriteLine($"File '{context.SWCOutputPath}' not found");
                 return false;
             }
 
-            var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
-            Directory.CreateDirectory(tempPath);
+            if (!Directory.Exists(context.TempPath))
+            {
+                WriteLine($"Directory '{context.TempPath}' not found");
+                return false;
+            }
 
-            var configFilepath = context.AsDocConfigFilepath;
-
-            CreateAsDocConfig(context, configFilepath, tempPath, true, context.SwcProjectSettings.FlexIgnoreClasses);
             var cmdArgs = CreateAsDocConfigFileArguments(context, project, configFilepath);
 
-            WriteLine("asdoc temp output: " + tempPath);
+            WriteLine($"asdoc temp output: {tempPath}");
 
             var asDocPath = Path.Combine(context.SdkBase, @"bin\asdoc.exe");
             var asdoc = PathUtils.GetExeOrBatPath(asDocPath)
@@ -77,20 +86,20 @@ namespace ExportSWC.AsDoc
                 return false;
             }
 
-            WriteLine("asdoc created successfully, including in SWC...");
+            WriteLine("Documentation created successfully, merging it into SWC...");
 
             try
             {
-                MergeAsDocIntoSWC(tempPath, context.FlexOutputPath);
+                MergeAsDocIntoSWC(tempPath, context.SWCOutputPath);
 
                 WriteLine("");
-                WriteLine($"asdoc integration complete ({exitCode})",
+                WriteLine($"Merging documentation successful ({exitCode})",
                     success ? TraceMessageType.Verbose : TraceMessageType.Error);
             }
             catch (Exception exc)
             {
                 WriteLine("");
-                WriteLine($"Integration error {exc.Message}", TraceMessageType.Error);
+                WriteLine($"Merging documentation failed {exc.Message}", TraceMessageType.Error);
             }
 
             // delete temporary directory
@@ -104,7 +113,7 @@ namespace ExportSWC.AsDoc
             var cmdArgs = $"";
 
             // prevent flaky builds by specifying configname explicitly
-            cmdArgs += $" +configname={(context.IsAir ? "air" : "flex")}";
+            cmdArgs += $"+configname={(context.IsAirSdk ? "air" : "flex")}";
 
             // generate arguments based on config, additional configs, and additional user arguments
             cmdArgs += $@" -load-config+=""{configFilepath}""";
@@ -455,7 +464,9 @@ namespace ExportSWC.AsDoc
         {
             var project = context.Project;
 
-            WriteLine("Prebuilding asdoc config " + configFilepath + "...");
+            Directory.CreateDirectory(outputDirectorypath);
+
+            WriteLine($"Prebuilding asdoc config {configFilepath}...");
 
             // build the config file
             var config = new XmlDocument();
@@ -468,7 +479,7 @@ namespace ExportSWC.AsDoc
 
             // target
             config.DocumentElement.CreateElement("target-player", context.TargetVersion);
-            
+
             // swf-version
             config.DocumentElement.CreateElement("swf-version", PlatformData.ResolveSwfVersion(project.Language, project.MovieOptions.Platform, context.TargetVersion));
 
@@ -524,7 +535,8 @@ namespace ExportSWC.AsDoc
             compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
 
             // compute-digest
-            if (!isRuntimeSharedLibrary)
+            if (!isRuntimeSharedLibrary &&
+                context.Framework != Framework.Flash)
             {
                 config.DocumentElement.CreateElement("compute-digest", "false");
             }
@@ -612,7 +624,7 @@ namespace ExportSWC.AsDoc
             // add namespace, save config to obj folder
             config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
             config.Save(configFilepath);
-            
+
             WriteLine("asdoc Configuration written to: " + configFilepath);
         }
 
