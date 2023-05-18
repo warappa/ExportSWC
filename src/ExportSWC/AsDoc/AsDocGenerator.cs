@@ -455,8 +455,6 @@ namespace ExportSWC.AsDoc
         {
             var project = context.Project;
 
-            configFilepath = $@"{configFilepath.TrimEnd('\\', '/')}\";
-
             WriteLine("Prebuilding asdoc config " + configFilepath + "...");
 
             // build the config file
