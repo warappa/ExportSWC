@@ -80,7 +80,8 @@ namespace ExportSWC.Compiling
                 WriteLine($"Building {flexOrAirContext.Framework} SWC");
                 var success = CompileWithCleanup(flexOrAirContext);
 
-                if (success == true)
+                if (success == true &&
+                    flashContext is not null)
                 {
                     WriteLine($"Building {flashContext.Framework} SWC");
                     success = CompileWithCleanup(flashContext) ?? success;
@@ -202,8 +203,10 @@ namespace ExportSWC.Compiling
                 CleanupOutputFiles(flashContext);
 
                 var success = CompileWithCleanup(flexOrAirContext);
-                if (success == true)
+                if (success == true &&
+                    flashContext is not null)
                 {
+                    WriteLine($"Building {flashContext.Framework} SWC");
                     success = CompileWithCleanup(flashContext) ?? success;
                 }
 
@@ -731,8 +734,7 @@ namespace ExportSWC.Compiling
 
                 // Include AsDoc if FlexSdkVersion >= 4
                 if (success &&
-                    swcProjectSettings.IntegrateAsDoc &&
-                    context.IsAsDocIntegrationAvailable)
+                    context.ShouldIntegrateAsDoc)
                 {
                     var framework = context.Framework.ToString().ToLower();
 
@@ -817,7 +819,7 @@ namespace ExportSWC.Compiling
 
             CreateCompcConfig(context, context.CompcConfigPath, context.TempCompcOutputPath, isRuntimeSharedLibrary, ignoreClasses);
 
-            if (context.IsAsDocIntegrationAvailable)
+            if (context.ShouldIntegrateAsDoc)
             {
                 var generator = new AsDocGenerator(_tracer);
                 generator.CreateAsDocConfig(context.AsDocContext!);

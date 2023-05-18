@@ -27,8 +27,7 @@ namespace ExportSWC.Compiling
             _objDirectory = PluginMain.GetObjDirectory(project);
             _isAir = File.Exists(Path.Combine(SdkBase, $"air-sdk-description.xml"));
 
-            if (swcProjectSettings.IntegrateAsDoc &&
-                IsAsDocIntegrationAvailable)
+            if (ShouldIntegrateAsDoc)
             {
                 _asDocContext = new AsDocContext(
                     project,
@@ -48,6 +47,8 @@ namespace ExportSWC.Compiling
         public Framework Framework => _framework;
 
         public string ProjectFullPath => _projectFullPath ??= new DirectoryInfo(Project.Directory).FullName;
+
+        public bool ShouldIntegrateAsDoc => SwcProjectSettings.IntegrateAsDoc && IsAsDocIntegrationAvailable;
 
         /// <summary>
         /// The SDK base path.
