@@ -57,8 +57,6 @@ namespace ExportSWC.AsDoc
 
             var configFilepath = context.AsDocConfigPath;
 
-            //var cmdArgs = BuildAsDocArguments(context, tempPath);
-
             CreateAsDocConfig(context, configFilepath, tempPath, true, context.SwcProjectSettings.FlexIgnoreClasses);
             var cmdArgs = CreateAsDocConfigFileArguments(context, project, configFilepath);
 
@@ -338,7 +336,7 @@ namespace ExportSWC.AsDoc
         private int CalculateCommentColumnIndentation(string comments, bool isMember)
         {
             var indent = isMember ? 5 : 4;
-            int i = 0;
+            var i = 0;
             for (; i < comments.Length; i++)
             {
                 var c = comments[i];
@@ -451,116 +449,6 @@ namespace ExportSWC.AsDoc
             }
 
             return additionalSpace;
-        }
-
-        private string BuildAsDocArguments(AsDocContext context, string tempPath)
-        {
-            var project = context.Project;
-            var projectFullPath = context.ProjectFullPath;
-
-            var arguments = "";
-
-            tempPath = tempPath.TrimEnd('\\', '/');
-
-            arguments += PluginMain.IsReleaseBuild(project) ? "" : " -debug";
-
-            // source-path	
-            arguments += " -source-path ";
-            foreach (var classPath in project.Classpaths)
-            {
-                var absClassPath = PathUtils.GetProjectItemFullPath(projectFullPath, classPath).ToLower();
-
-                arguments += $@"""{absClassPath}"" ";
-            }
-
-            // general options...
-            // libarary-path			
-            if (project.CompilerOptions.LibraryPaths.Length > 0)
-            {
-                arguments += " -library-path ";
-                foreach (var libPath in project.CompilerOptions.LibraryPaths)
-                {
-                    var absLibPath = PathUtils.GetProjectItemFullPath(projectFullPath, libPath).ToLower();
-                    arguments += $@"""{absLibPath}"" ";
-                }
-            }
-
-            // include-libraries
-            if (project.CompilerOptions.IncludeLibraries.Length > 0)
-            {
-                if (arguments.Contains("-library-path") == false)
-                {
-                    arguments += " -library-path ";
-                }
-
-                foreach (var libPath in project.CompilerOptions.IncludeLibraries)
-                {
-                    var absLibPath = PathUtils.GetProjectItemFullPath(projectFullPath, libPath).ToLower();
-                    arguments += $@"""{absLibPath}"" ";
-                }
-            }
-
-            // external-library-path 
-            if (project.CompilerOptions.ExternalLibraryPaths != null &&
-                project.CompilerOptions.ExternalLibraryPaths.Length > 0)
-            {
-                if (arguments.Contains("-library-path") == false)
-                {
-                    arguments += " -library-path ";
-                }
-
-                foreach (var libPath in project.CompilerOptions.ExternalLibraryPaths)
-                {
-                    var absLibPath = PathUtils.GetProjectItemFullPath(projectFullPath, libPath).ToLower();
-                    arguments += $@"""{absLibPath}"" ";
-                }
-            }
-
-            var classExclusions = context.FlexIgnoreClasses;
-            if (classExclusions.Count > 0)
-            {
-                arguments += " -exclude-classes ";
-                // exclude-classes
-                var origClassExclusions = classExclusions;
-                classExclusions = new List<string>();
-                for (var i = 0; i < origClassExclusions.Count; i++)
-                {
-                    classExclusions.Add(PathUtils.GetProjectItemFullPath(projectFullPath, origClassExclusions[i]).ToLower());
-                    arguments += classExclusions[classExclusions.Count - 1] + " ";
-                }
-            }
-
-            arguments += " -doc-classes ";
-            foreach (var classPath in project.Classpaths)
-            {
-                var absClassPath = PathUtils.GetProjectItemFullPath(projectFullPath, classPath).ToLower();
-                arguments += IncludeClassesInAsDoc(context, absClassPath, string.Empty, classExclusions) + " ";
-            }
-
-            // no documentation for dependencies
-            arguments += "-exclude-dependencies=true ";
-
-            //if (context.IsAir)
-            {
-                arguments += $"+configname={(context.IsAir ? "air" : "flex")} ";
-            }
-            //else
-            {
-                // the target-player
-                arguments += $"-target-player={context.TargetVersion} ";
-            }
-
-            // locale
-            if (!string.IsNullOrEmpty(context.Project.CompilerOptions.Locale))
-            {
-                arguments += $"-locale={context.Project.CompilerOptions.Locale} ";
-            }
-
-            arguments = $@"-lenient=true -keep-xml=true -skip-xsl=true -output ""{tempPath}"" {arguments}";
-            //arguments += " -load-config=\"" + Path.Combine(ProjectPath.FullName, "obj/" + _project.Name + ".flex.compc.xml") + "\"";
-
-
-            return arguments;
         }
 
         protected void CreateAsDocConfig(AsDocContext context, string configFilepath, string outputDirectorypath, bool isRuntimeSharedLibrary, List<string> classExclusions)
