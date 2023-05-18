@@ -138,7 +138,7 @@ namespace ExportSWC.Compiling
         public List<string> IgnoreClasses => Framework == Framework.Flash ? SwcProjectSettings.CS3IgnoreClasses : SwcProjectSettings.FlexIgnoreClasses;
         public string MXIPath => $"{_objDirectory}{Project.Name}.mxi";
         public string ASIDir => Path.Combine(ProjectFullPath, "asi");
-        public string SWCProjectSettingsPath => Path.Combine(ProjectFullPath, $"{Project.Name}.lxml");
+        public string SWCProjectSettingsPath => Path.Combine(ProjectFullPath, $"{Project.Name}{ExportSWCConstants.SwcConfigFileExentions}");
         public string TargetVersion => Project.MovieOptions.Version;
 
         public static bool GetIsAir(AS3Project project)

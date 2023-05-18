@@ -102,6 +102,17 @@ namespace ExportSWC
                 return null;
             }
 
+            return $@"{new DirectoryInfo(as3Project.Directory).FullName}\{as3Project.Name}{ExportSWCConstants.SwcConfigFileExentions}";
+        }
+
+        [return: NotNullIfNotNull(nameof(as3Project))]
+        private string? GetObsoleteSwcProjectSettingsPath(AS3Project? as3Project)
+        {
+            if (as3Project is null)
+            {
+                return null;
+            }
+
             return $@"{new DirectoryInfo(as3Project.Directory).FullName}\{as3Project.Name}.lxml";
         }
     }

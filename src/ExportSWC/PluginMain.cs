@@ -173,11 +173,11 @@ namespace ExportSWC
 
                         if (oldExtension != newExtension)
                         {
-                            if (oldExtension == ".lxml")
+                            if (oldExtension == ExportSWCConstants.SwcConfigFileExentions)
                             {
                                 UnloadSWCProject();
                             }
-                            else if (newExtension == ".lxml")
+                            else if (newExtension == ExportSWCConstants.SwcConfigFileExentions)
                             {
                                 LoadSWCProject();
                             }
@@ -226,6 +226,8 @@ namespace ExportSWC
 
         private void LoadSWCProject()
         {
+            MigrateFileExtensionIfFound();
+
             CurrentSwcProject = SWCProject.Load(CurrentSWCProjectPath!);
 
             InitProjectFile(CurrentProject!, CurrentSwcProject!);
@@ -284,6 +286,16 @@ namespace ExportSWC
                     ErrorManager.ShowError("Could not read ExportSWC settings file", exc);
                 }
                 //_settingsObject = ObjectSerializer.Deserialize<ExportSWCSettings>(_settingsFilename, _settingsObject);
+            }
+        }
+
+        private void MigrateFileExtensionIfFound()
+        {
+            var obsoletePath = GetObsoleteSwcProjectSettingsPath(CurrentProject!);
+            if (File.Exists(obsoletePath))
+            {
+                ErrorManager.ShowInfo($"The new file extension for ExportSWC project configuration is '{ExportSWCConstants.SwcConfigFileExentions}'.\n\nThe file extension will be automatically renamed.");
+                File.Move(obsoletePath, Path.ChangeExtension(obsoletePath, ExportSWCConstants.SwcConfigFileExentions));
             }
         }
 
