@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
 using System.Threading.Tasks;
@@ -135,15 +136,13 @@ namespace ExportSWC
         /// </summary>
         public async void HandleEvent(object sender, NotifyEvent e, HandlingPriority prority)
         {
-            Debug.WriteLine(e.Type.ToString());
-
             switch (e.Type)
             {
                 // Catches CurrentProject change event and display the active project path
                 case EventType.Command:
                     var dataEvent = (DataEvent)e;
                     var cmd = dataEvent.Action;
-                    Debug.WriteLine($" - {cmd}");
+
                     if (cmd == ProjectManagerEvents.Project)
                     {
                         var project = PluginBase.CurrentProject;
@@ -217,6 +216,18 @@ namespace ExportSWC
                         RepaintNodes();
                     }
 
+                    break;
+                case EventType.FileOpen:
+                    var fileOpenTextEvent = (TextEvent)e;
+                    var openedFilepath = fileOpenTextEvent.Value;
+                    if (openedFilepath == CurrentSWCProjectPath)
+                    {
+                        var editor = PluginBase.MainForm.CurrentDocument!.SciControl!;
+                        if (editor.ConfigurationLanguage == "text")
+                        {
+                            editor.ConfigurationLanguage = "xml";
+                        }
+                    }
                     break;
                 case EventType.FileOpening:
                     if (_openingLxmlSource)
