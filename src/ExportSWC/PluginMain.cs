@@ -2,13 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using ExportSWC.Compiling;
 using ExportSWC.Options;
@@ -22,7 +18,6 @@ using PluginCore.Managers;
 using ProjectManager;
 using ProjectManager.Controls;
 using ProjectManager.Controls.TreeView;
-using ProjectManager.Helpers;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC

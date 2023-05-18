@@ -8,6 +8,7 @@
     <OutputPath>..\FlashDevelop\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <NoWarn>$(NoWarn);MSB3270</NoWarn>
+    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -25,13 +26,14 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="System.Resources.Extensions" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FlashDevelop\External\Plugins\AS3Context\AS3Context.csproj" />
     <ProjectReference Include="..\FlashDevelop\External\Plugins\ASCompletion\ASCompletion.csproj" />
     <ProjectReference Include="..\FlashDevelop\External\Plugins\ProjectManager\ProjectManager.csproj" />
-    <ProjectReference Include="..\FlashDevelop\FlashDevelop\FlashDevelop.csproj" />
+    <!--<ProjectReference Include="..\FlashDevelop\FlashDevelop\FlashDevelop.csproj" />-->
     <ProjectReference Include="..\FlashDevelop\PluginCore\PluginCore.csproj" />
   </ItemGroup>
 

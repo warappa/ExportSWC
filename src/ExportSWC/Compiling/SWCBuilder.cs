@@ -279,7 +279,7 @@ namespace ExportSWC.Compiling
                 return;
             }
 
-            var command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(context.Project.PreBuildEvent, true);
+            var command = ProcessUtils.ProcessString(context.Project.PreBuildEvent, true);
 
             var process = new Process();
             var processStI = new ProcessStartInfo
@@ -308,7 +308,7 @@ namespace ExportSWC.Compiling
             WriteLine("");
             WriteLine("Run post-build", TraceMessageType.Message);
 
-            var command = FlashDevelop.Utilities.ArgsProcessor.ProcessString(project.PostBuildEvent, true);
+            var command = ProcessUtils.ProcessString(project.PostBuildEvent, true);
 
             var process = new Process();
             var processStI = new ProcessStartInfo

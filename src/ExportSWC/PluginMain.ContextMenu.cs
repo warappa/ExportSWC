@@ -7,7 +7,6 @@ using ProjectManager.Controls.TreeView;
 using ProjectManager.Projects.AS3;
 using System.Linq;
 using PluginCore;
-using PluginCore.Managers;
 
 namespace ExportSWC
 {
@@ -26,7 +25,7 @@ namespace ExportSWC
             EnsureNotNull(CurrentSwcProject);
 
             // we're only interested in single items
-            if (tree.SelectedNodes.Count == 1)
+            if (tree.SelectedPaths.Length == 1)
             {
                 var node = tree.SelectedNode;
 

@@ -5,7 +5,6 @@ using System.IO;
 using System.Windows.Forms;
 using ExportSWC.Options;
 using ProjectManager.Projects.AS3;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 
 namespace ExportSWC
 {
