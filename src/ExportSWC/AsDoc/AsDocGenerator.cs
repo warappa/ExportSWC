@@ -569,7 +569,6 @@ namespace ExportSWC.AsDoc
 
             configFilepath = $@"{configFilepath.TrimEnd('\\', '/')}\";
 
-            //TraceManager.Add("Prebuilding config " + confout + "...");
             WriteLine("Prebuilding asdoc config " + configFilepath + "...");
 
             // build the config file
@@ -577,20 +576,70 @@ namespace ExportSWC.AsDoc
 
             config.LoadXml("<?xml version=\"1.0\"?><flex-config/>");
 
+            //// general options...
+            //// output
+            config.DocumentElement.CreateElement("output", outputDirectorypath);
+
+            // target
+            config.DocumentElement.CreateElement("target-player", context.TargetVersion);
+
+            // use-network
+            config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
+
+            // warnings
+            config.DocumentElement.CreateElement("warnings", project.CompilerOptions.Warnings.ToString().ToLower());
+
+            // benchmark
+            config.DocumentElement.CreateElement("benchmark", project.CompilerOptions.Benchmark.ToString().ToLower());
+
             // compiler options...
             var compiler = config.DocumentElement.CreateElement("compiler", null!);
 
             compiler.CreateElement("debug", (!PluginMain.IsReleaseBuild(project)).ToString().ToLower());
 
-            // source-path & include-classes
-            var sourcePath = compiler.CreateElement("source-path", null!);
-            foreach (var classPath in project.Classpaths)
+            // locale
+            if (!string.IsNullOrEmpty(context.Project.CompilerOptions.Locale))
             {
-                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
-                sourcePath.CreateElement("path-element", absClassPath);
+                var localeX = compiler.CreateElement("locale", "");
+                localeX.CreateElement("locale-element", context.Project.CompilerOptions.Locale);
             }
 
-            // general options...
+            // accessible
+            compiler.CreateElement("accessible", project.CompilerOptions.Accessible.ToString().ToLower());
+
+            // allow-source-path-overlap
+            compiler.CreateElement("allow-source-path-overlap", project.CompilerOptions.AllowSourcePathOverlap.ToString().ToLower());
+
+            // optimize
+            compiler.CreateElement("optimize", project.CompilerOptions.Optimize.ToString().ToLower());
+
+            // strict
+            compiler.CreateElement("strict", project.CompilerOptions.Strict.ToString().ToLower());
+
+            // es
+            compiler.CreateElement("es", project.CompilerOptions.ES.ToString().ToLower());
+
+            // show-actionscript-warnings
+            compiler.CreateElement("show-actionscript-warnings", project.CompilerOptions.ShowActionScriptWarnings.ToString().ToLower());
+
+            // show-binding-warnings
+            compiler.CreateElement("show-binding-warnings", project.CompilerOptions.ShowBindingWarnings.ToString().ToLower());
+
+            // show-unused-type-selector- warnings
+            compiler.CreateElement("show-unused-type-selector-warnings", project.CompilerOptions.ShowUnusedTypeSelectorWarnings.ToString().ToLower());
+
+            // use-resource-bundle-metadata
+            compiler.CreateElement("use-resource-bundle-metadata", project.CompilerOptions.UseResourceBundleMetadata.ToString().ToLower());
+
+            // verbose-stacktraces
+            compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
+
+            // compute-digest
+            if (!isRuntimeSharedLibrary)
+            {
+                config.DocumentElement.CreateElement("compute-digest", "false");
+            }
+
             // libarary-path			
             if (project.CompilerOptions.LibraryPaths.Length > 0)
             {
@@ -629,6 +678,24 @@ namespace ExportSWC.AsDoc
                 }
             }
 
+            // runtime-shared-libraries
+            if (project.CompilerOptions.RSLPaths.Length > 0)
+            {
+                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null!);
+                foreach (var rslUrl in project.CompilerOptions.RSLPaths)
+                {
+                    rslUrls.CreateElement("rsl-url", rslUrl);
+                }
+            }
+
+            // source-path
+            var sourcePath = compiler.CreateElement("source-path", null!);
+            foreach (var classPath in project.Classpaths)
+            {
+                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
+                sourcePath.CreateElement("path-element", absClassPath);
+            }
+
             // doc-classes
             var origClassExclusions = classExclusions;
             classExclusions = new List<string>();
@@ -641,26 +708,7 @@ namespace ExportSWC.AsDoc
             foreach (var classPath in project.Classpaths)
             {
                 var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
-                IncludeClassesIn(docClasses, context.ProjectFullPath, absClassPath, string.Empty, "class", classExclusions);
-            }
-
-
-            //// TODO: -doc-classes
-            //foreach (var classPath in project.Classpaths)
-            //{
-            //    var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
-            //    IncludeClassesIn(config.DocumentElement, context.ProjectFullPath, absClassPath, string.Empty, "doc-classes", classExclusions);
-            //}
-
-            // If Air is used, target version is AIR version
-            // target
-            config.DocumentElement.CreateElement("target-player", context.TargetVersion);
-
-            // locale
-            if (!string.IsNullOrEmpty(context.Project.CompilerOptions.Locale))
-            {
-                var localeX = compiler.CreateElement("locale", "");
-                localeX.CreateElement("locale-element", context.Project.CompilerOptions.Locale);
+                DocClassesIn(docClasses, context.ProjectFullPath, absClassPath, string.Empty, "class", classExclusions);
             }
 
             // lenient
@@ -672,84 +720,14 @@ namespace ExportSWC.AsDoc
             // lenient
             config.DocumentElement.CreateElement("skip-xsl", "true");
 
-
-            //// general options...
-            //// output
-            config.DocumentElement.CreateElement("output", outputDirectorypath);
-
-
-            // use-network
-            config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
-
-            // warnings
-            config.DocumentElement.CreateElement("warnings", project.CompilerOptions.Warnings.ToString().ToLower());
-
-            // runtime-shared-libraries
-            if (project.CompilerOptions.RSLPaths.Length > 0)
-            {
-                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null!);
-                foreach (var rslUrl in project.CompilerOptions.RSLPaths)
-                {
-                    rslUrls.CreateElement("rsl-url", rslUrl);
-                }
-            }
-
-            // benchmark
-            config.DocumentElement.CreateElement("benchmark", project.CompilerOptions.Benchmark.ToString().ToLower());
-
-            // compute-digest
-            if (!isRuntimeSharedLibrary)
-            {
-                config.DocumentElement.CreateElement("compute-digest", "false");
-            }
-
-            // accessible
-            compiler.CreateElement("accessible", project.CompilerOptions.Accessible.ToString().ToLower());
-
-            // allow-source-path-overlap
-            compiler.CreateElement("allow-source-path-overlap", project.CompilerOptions.AllowSourcePathOverlap.ToString().ToLower());
-
-            // optimize
-            compiler.CreateElement("optimize", project.CompilerOptions.Optimize.ToString().ToLower());
-
-            // strict
-            compiler.CreateElement("strict", project.CompilerOptions.Strict.ToString().ToLower());
-
-            // es
-            compiler.CreateElement("es", project.CompilerOptions.ES.ToString().ToLower());
-
-            // show-actionscript-warnings
-            compiler.CreateElement("show-actionscript-warnings", project.CompilerOptions.ShowActionScriptWarnings.ToString().ToLower());
-
-            // show-binding-warnings
-            compiler.CreateElement("show-binding-warnings", project.CompilerOptions.ShowBindingWarnings.ToString().ToLower());
-
-            // show-unused-type-selector- warnings
-            compiler.CreateElement("show-unused-type-selector-warnings", project.CompilerOptions.ShowUnusedTypeSelectorWarnings.ToString().ToLower());
-
-            // use-resource-bundle-metadata
-            compiler.CreateElement("use-resource-bundle-metadata", project.CompilerOptions.UseResourceBundleMetadata.ToString().ToLower());
-
-            // verbose-stacktraces
-            compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
-
-
-
-
-
-
-
-
-
             // add namespace, save config to obj folder
             config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
             config.Save(configFilepath);
             
             WriteLine("asdoc Configuration written to: " + configFilepath);
-
         }
 
-        protected void IncludeClassesIn(XmlElement includeClasses, string projectPath, string sourcePath, string parentPath, string elementTag, List<string> classExclusions)
+        protected void DocClassesIn(XmlElement includeClasses, string projectPath, string sourcePath, string parentPath, string elementTag, List<string> classExclusions)
         {
             // take the current folder
             var directory = new DirectoryInfo(sourcePath);
@@ -777,7 +755,7 @@ namespace ExportSWC.AsDoc
             // process sub folders
             foreach (var folder in directory.GetDirectories())
             {
-                IncludeClassesIn(includeClasses, projectPath, folder.FullName, parentPath + folder.Name + ".", elementTag, classExclusions);
+                DocClassesIn(includeClasses, projectPath, folder.FullName, parentPath + folder.Name + ".", elementTag, classExclusions);
             }
         }
 

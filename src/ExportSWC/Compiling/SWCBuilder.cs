@@ -833,32 +833,14 @@ namespace ExportSWC.Compiling
             // output
             config.DocumentElement.CreateElement("output", outputFilepath);
 
-            // use-network
-            config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
-
-            // If Air is used, target version is AIR version
             // target
             config.DocumentElement.CreateElement("target-player", context.TargetVersion);
 
+            // use-network
+            config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
+
             // warnings
             config.DocumentElement.CreateElement("warnings", project.CompilerOptions.Warnings.ToString().ToLower());
-
-            //// locale
-            //if (!context.IsAir &&
-            //    project.CompilerOptions.Locale != string.Empty)
-            //{
-            //    config.DocumentElement.CreateElement("locale", project.CompilerOptions.Locale);
-            //}
-
-            // runtime-shared-libraries
-            if (project.CompilerOptions.RSLPaths.Length > 0)
-            {
-                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null!);
-                foreach (var rslUrl in project.CompilerOptions.RSLPaths)
-                {
-                    rslUrls.CreateElement("rsl-url", rslUrl);
-                }
-            }
 
             // benchmark
             config.DocumentElement.CreateElement("benchmark", project.CompilerOptions.Benchmark.ToString().ToLower());
@@ -868,10 +850,11 @@ namespace ExportSWC.Compiling
 
             compiler.CreateElement("debug", (!PluginMain.IsReleaseBuild(project)).ToString().ToLower());
 
-            // compute-digest
-            if (!isRuntimeSharedLibrary)
+            // locale
+            if (!string.IsNullOrEmpty(context.Project.CompilerOptions.Locale))
             {
-                config.DocumentElement.CreateElement("compute-digest", "false");
+                var localeX = compiler.CreateElement("locale", "");
+                localeX.CreateElement("locale-element", context.Project.CompilerOptions.Locale);
             }
 
             // accessible
@@ -904,15 +887,12 @@ namespace ExportSWC.Compiling
             // verbose-stacktraces
             compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
 
-            // source-path & include-classes
-            var sourcePath = compiler.CreateElement("source-path", null!);
-            foreach (var classPath in project.Classpaths)
+            // compute-digest
+            if (!isRuntimeSharedLibrary)
             {
-                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
-                sourcePath.CreateElement("path-element", absClassPath);
+                config.DocumentElement.CreateElement("compute-digest", "false");
             }
 
-            // general options...
             // libarary-path			
             if (project.CompilerOptions.LibraryPaths.Length > 0)
             {
@@ -935,21 +915,6 @@ namespace ExportSWC.Compiling
                 }
             }
 
-            // include-classes
-            var origClassExclusions = classExclusions;
-            classExclusions = new List<string>();
-            for (var i = 0; i < origClassExclusions.Count; i++)
-            {
-                classExclusions.Add(PathUtils.GetProjectItemFullPath(context.ProjectFullPath, origClassExclusions[i]).ToLower());
-            }
-
-            var includeClasses = config.DocumentElement.CreateElement("include-classes", null!);
-            foreach (var classPath in project.Classpaths)
-            {
-                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
-                IncludeClassesIn(includeClasses, context.ProjectFullPath, absClassPath, string.Empty, classExclusions);
-            }
-
             // external-library-path 
             if (project.CompilerOptions.ExternalLibraryPaths != null && project.CompilerOptions.ExternalLibraryPaths.Length > 0)
             {
@@ -963,6 +928,39 @@ namespace ExportSWC.Compiling
                     var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
                     externalLibs.CreateElement("path-element", absLibPath);
                 }
+            }
+
+            // runtime-shared-libraries
+            if (project.CompilerOptions.RSLPaths.Length > 0)
+            {
+                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null!);
+                foreach (var rslUrl in project.CompilerOptions.RSLPaths)
+                {
+                    rslUrls.CreateElement("rsl-url", rslUrl);
+                }
+            }
+
+            // source-path
+            var sourcePath = compiler.CreateElement("source-path", null!);
+            foreach (var classPath in project.Classpaths)
+            {
+                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
+                sourcePath.CreateElement("path-element", absClassPath);
+            }
+
+            // include-classes
+            var origClassExclusions = classExclusions;
+            classExclusions = new List<string>();
+            for (var i = 0; i < origClassExclusions.Count; i++)
+            {
+                classExclusions.Add(PathUtils.GetProjectItemFullPath(context.ProjectFullPath, origClassExclusions[i]).ToLower());
+            }
+
+            var includeClasses = config.DocumentElement.CreateElement("include-classes", null!);
+            foreach (var classPath in project.Classpaths)
+            {
+                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
+                IncludeClassesIn(includeClasses, context.ProjectFullPath, absClassPath, string.Empty, classExclusions);
             }
 
             // add namespace, save config to obj folder
