@@ -122,7 +122,7 @@ namespace ExportSWC
                 _button_compile.Enabled =
                 !_compiler.IsBuilding && CurrentSwcProject is not null;
 
-            _button_override_default_build_command.Enabled = _settingsObject.OverrideBuildCommand;
+            _button_override_default_build_command.Checked = _settingsObject.OverrideBuildCommand;
         }
 
         private void Configure(object sender, EventArgs e)
