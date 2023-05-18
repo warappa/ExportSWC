@@ -112,34 +112,57 @@
     <value>2.0</value>
   </resheader>
   <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="icon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>icon.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="Info.Description" xml:space="preserve">
-    <value>Export SWC using compc and project compiler settings.</value>
+  <data name="Plugin_Description" xml:space="preserve">
+    <value>Export SWC using compc, asdoc and project compiler settings.</value>
   </data>
-  <data name="Label.PluginButton" xml:space="preserve">
+  <data name="ExportButton_ToolTip" xml:space="preserve">
     <value>Build SWC/MXI</value>
   </data>
-  <data name="Label.CompileButton" xml:space="preserve">
-    <value>Just compile (uses manifest data from /obj directory)</value>
+  <data name="OnlyCompileButton_ToolTip" xml:space="preserve">
+    <value>Compile targets (uses previously built metadata data from /obj directory)</value>
   </data>
-  <data name="Label.Configure" xml:space="preserve">
+  <data name="ConfigureProjectSettingsButton_ToolTip" xml:space="preserve">
     <value>Configure SWC/MXI targets</value>
   </data>
-  <data name="Label.OverrideDefaultBuildCommand" xml:space="preserve">
-    <value>Override default build command</value>
+  <data name="OverrideDefaultBuildCommandButton_ToolTip" xml:space="preserve">
+    <value>Override default build command (gear symbol and build hotkey)</value>
   </data>
-  <data name="Label.PartialBuildButton" xml:space="preserve">
+  <data name="PrepareBuildConfigFiles_ToolTip" xml:space="preserve">
     <value>Prepare manifest/installer data (prepares compc manifest/mxi install script but doesn't compile)</value>
   </data>
   <data name="cs3_component_icon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>cs3_component_icon.png;System.Drawing.Bitmap, System.Drawing, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="OnlyCompileButton_Label" xml:space="preserve">
+    <value>Compile Targets</value>
+  </data>
+  <data name="ConfigureProjectSettingsButton_Label" xml:space="preserve">
+    <value>Configure SWC/MXI Targets</value>
+  </data>
+  <data name="ExportButton_Label" xml:space="preserve">
+    <value>Build All</value>
+  </data>
+  <data name="ExportButton_Label:NoProject" xml:space="preserve">
+    <value>No ExportSWC project loaded (*.lxml).
+
+Create a new by using sub-menu item "Configure SWC/MXI Targets".</value>
+  </data>
+  <data name="icon_disabled" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>icon_disabled.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="OverrideDefaultBuildCommandButton_Label" xml:space="preserve">
+    <value>Override Default Build Command</value>
+  </data>
+  <data name="PrepareBuildConfigFiles_Label" xml:space="preserve">
+    <value>Prebuild Metadata</value>
   </data>
 </root>

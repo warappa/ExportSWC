@@ -33,13 +33,15 @@ namespace ExportSWC.Compiling
         private static Regex compcErrorMessageRegex = new Regex(@"^(?<start>^[a-zA-Z0-9.:\\\/]+\([0-9]+\): col: )(?<col>[0-9]+)(?<end> .*)$");
 
         private bool _anyErrors;
-        private bool _running;
+        private bool _isBuilding;
         private readonly ITraceable _tracer;
 
         public SWCBuilder(ITraceable tracer)
         {
             _tracer = tracer;
         }
+
+        public bool IsBuilding => _isBuilding;
 
         /// <summary>
         /// Main method for plugin - Export SWC using compc.exe
@@ -48,12 +50,12 @@ namespace ExportSWC.Compiling
         /// <param name="e">the event args</param>
         public void Build(AS3Project project, SWCProject swcProjectSettings)
         {
-            if (_running)
+            if (_isBuilding)
             {
                 return;
             }
 
-            _running = true;
+            _isBuilding = true;
 
             //var clearResultsCommand = new DataEvent(EventType.Command, "ResultsPanel.ClearResults", null);
             //EventManager.DispatchEvent(this, clearResultsCommand);
@@ -104,7 +106,7 @@ namespace ExportSWC.Compiling
             }
             finally
             {
-                _running = false;
+                _isBuilding = false;
             }
         }
 
@@ -176,12 +178,12 @@ namespace ExportSWC.Compiling
 
         public void Compile(AS3Project project, SWCProject swcProjectSettings)
         {
-            if (_running)
+            if (_isBuilding)
             {
                 return;
             }
 
-            _running = true;
+            _isBuilding = true;
 
             NotifyBuildStarted(project);
 
@@ -227,18 +229,18 @@ namespace ExportSWC.Compiling
             }
             finally
             {
-                _running = false;
+                _isBuilding = false;
             }
         }
 
         public void PreBuild(AS3Project project, SWCProject swcProjectSettings)
         {
-            if (_running)
+            if (_isBuilding)
             {
                 return;
             }
 
-            _running = true;
+            _isBuilding = true;
 
             ClearOutput();
 
@@ -266,7 +268,7 @@ namespace ExportSWC.Compiling
             }
             finally
             {
-                _running = false;
+                _isBuilding = false;
             }
         }
 

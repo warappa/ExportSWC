@@ -10,11 +10,17 @@ namespace ExportSWC
 {
     public partial class PluginMain
     {
+        private Image? _enabledIcon;
+        private Image? _disabledIcon;
+
         /// <summary>
         /// Creates a menu item for the plugin and adds a ignored key
         /// </summary>
         private void CreateMenuItem()
         {
+            _enabledIcon ??= LocaleHelper.GetImage("icon");
+            _disabledIcon ??= LocaleHelper.GetImage("icon_disabled");
+
             //ToolStripMenuItem viewMenu = (ToolStripMenuItem)PluginBase.MainForm.FindMenuItem("ViewMenu");
             //viewMenu.DropDownItems.Add(new ToolStripMenuItem(LocaleHelper.GetString("Label.ViewMenuItem"), this.pluginImage, new EventHandler(Configure)));
 
@@ -25,21 +31,29 @@ namespace ExportSWC
             if (toolStrip != null)
             {
                 toolStrip.Items.Add(new ToolStripSeparator());
-                //_button = new ToolStripButton(LocaleHelper.GetImage("icon"));
-                _button = new ToolStripSplitButton(LocaleHelper.GetImage("icon"))
+
+                /* main button */
+                _button = new ToolStripSplitButton(_disabledIcon)
                 {
-                    ToolTipText = LocaleHelper.GetString("Label.PluginButton"),
-                    Enabled = false
+                    ToolTipText = LocaleHelper.GetString("ExportButton_Label")
                 };
-                _button.ButtonClick += new EventHandler(Build);
-                /* add main button */
+                _button.ButtonClick += (s, e) =>
+                {
+                    if (CurrentSwcProject is null)
+                    {
+                        return;
+                    }
+
+                    Build(s, e);
+                };
                 toolStrip.Items.Add(_button);
+
                 /* add menu items */
                 /* build */
                 _button_build_def = new ToolStripMenuItem
                 {
-                    Text = "Build All",
-                    ToolTipText = LocaleHelper.GetString("Label.PluginButton"),
+                    Text = LocaleHelper.GetString("ExportButton_Label"),
+                    ToolTipText = LocaleHelper.GetString("ExportButton_ToolTip"),
                     Enabled = CurrentSwcProject is not null
                 };
                 _button_build_def.Font = new Font(_button_build_def.Font, FontStyle.Bold);
@@ -48,8 +62,8 @@ namespace ExportSWC
                 /* meta */
                 _button_partial = new ToolStripMenuItem
                 {
-                    Text = "Prebuild Meta",
-                    ToolTipText = LocaleHelper.GetString("Label.PartialBuildButton"),
+                    Text = LocaleHelper.GetString("PrepareBuildConfigFiles_Label"),
+                    ToolTipText = LocaleHelper.GetString("PrepareBuildConfigFiles_ToolTip"),
                     Enabled = CurrentSwcProject is not null
                 };
                 _button_partial.Click += new EventHandler(PreBuildClick);
@@ -57,8 +71,8 @@ namespace ExportSWC
                 /* compile */
                 _button_compile = new ToolStripMenuItem
                 {
-                    Text = "Compile Targets",
-                    ToolTipText = LocaleHelper.GetString("Label.CompileButton"),
+                    Text = LocaleHelper.GetString("OnlyCompileButton_Label"),
+                    ToolTipText = LocaleHelper.GetString("OnlyCompileButton_ToolTip"),
                     Enabled = CurrentSwcProject is not null
                 };
                 _button_compile.Click += new EventHandler(CompileClick);
@@ -69,8 +83,8 @@ namespace ExportSWC
                 /* configure */
                 _button_config = new ToolStripMenuItem
                 {
-                    Text = "Configure",
-                    ToolTipText = LocaleHelper.GetString("Label.Configure")
+                    Text = LocaleHelper.GetString("ConfigureProjectSettingsButton_Label"),
+                    ToolTipText = LocaleHelper.GetString("ConfigureProjectSettingsButton_ToolTip")
                 };
                 _button_config.Click += new EventHandler(Configure);
                 _button.DropDown.Items.Add(_button_config);
@@ -78,9 +92,9 @@ namespace ExportSWC
                 /* override default build command */
                 _button_override_default_build_command = new ToolStripMenuItem
                 {
-                    Text = "Override Default Build",
+                    Text = LocaleHelper.GetString("OverrideDefaultBuildCommandButton_Label"),
                     Checked = _settingsObject.OverrideBuildCommand,
-                    ToolTipText = LocaleHelper.GetString("Label.OverrideDefaultBuildCommand")
+                    ToolTipText = LocaleHelper.GetString("OverrideDefaultBuildCommandButton_ToolTip")
                 };
                 _button_override_default_build_command.Click += (s, e) =>
                 {
@@ -95,12 +109,17 @@ namespace ExportSWC
 
         private void UpdateToolstrip()
         {
-            _button.Enabled = PluginBase.CurrentProject?.Language.ToLowerInvariant() == "as3";
+            _button.Enabled = !_compiler.IsBuilding &&
+                CurrentProject is not null;
+            _button.ToolTipText = CurrentSwcProject is not null ? 
+                LocaleHelper.GetString("ExportButton_Label") :
+                LocaleHelper.GetString("ExportButton_Label:NoProject");
+            _button.Image = _button.Enabled && CurrentSwcProject is not null ? _enabledIcon : _disabledIcon;
 
             _button_build_def.Enabled =
                 _button_partial.Enabled =
                 _button_compile.Enabled =
-                CurrentSwcProject is not null;
+                !_compiler.IsBuilding && CurrentSwcProject is not null;
 
             _button_override_default_build_command.Enabled = _settingsObject.OverrideBuildCommand;
         }
