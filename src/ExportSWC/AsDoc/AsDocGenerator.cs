@@ -470,6 +470,9 @@ namespace ExportSWC.AsDoc
 
             // target
             config.DocumentElement.CreateElement("target-player", context.TargetVersion);
+            
+            // swf-version
+            config.DocumentElement.CreateElement("swf-version", PlatformData.ResolveSwfVersion(project.Language, project.MovieOptions.Platform, context.TargetVersion));
 
             // use-network
             config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
