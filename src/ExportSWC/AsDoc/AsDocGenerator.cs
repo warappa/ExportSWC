@@ -130,6 +130,8 @@ namespace ExportSWC.AsDoc
                 }
             }
 
+            cmdArgs += " -tools-locale=en_US";
+
             return cmdArgs;
         }
 

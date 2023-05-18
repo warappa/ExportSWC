@@ -689,6 +689,8 @@ namespace ExportSWC.Compiling
                     }
                 }
 
+                cmdArgs += " -tools-locale=en_US";
+
                 _anyErrors = false;
 
                 // start the compc.exe process with arguments
