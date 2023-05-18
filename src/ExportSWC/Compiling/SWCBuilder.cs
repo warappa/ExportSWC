@@ -69,6 +69,7 @@ namespace ExportSWC.Compiling
                 CleanupOutputFiles(context);
 
                 PreBuild(context);
+
                 var success = Compile(context);
 
                 if (!success)
@@ -79,12 +80,36 @@ namespace ExportSWC.Compiling
                 }
                 else
                 {
+                    MoveOutputFilesToOutputLocations(context);
+
                     NotifyBuildSucceeded(project);
                 }
             }
             finally
             {
                 _running = false;
+            }
+        }
+
+        private void MoveOutputFilesToOutputLocations(CompileContext context)
+        {
+            if (File.Exists(context.CompcOutputPathFlex))
+            {
+                File.Delete(context.CompcOutputPathFlex);
+            }
+
+            WriteLine($"Move Flex SWC to '{context.CompcOutputPathFlex}'", TraceMessageType.Verbose);
+            File.Move(context.TempCompcOutputPathFlex, context.CompcOutputPathFlex);
+
+            if (context.SwcProjectSettings.MakeCS3)
+            {
+                if (File.Exists(context.CompcOutputPathFlash))
+                {
+                    File.Delete(context.CompcOutputPathFlash);
+                }
+
+                File.Move(context.TempCompcOutputPathFlash, context.CompcOutputPathFlash);
+                WriteLine($"Move Flash SWC to '{context.CompcOutputPathFlex}'", TraceMessageType.Verbose);
             }
         }
 
@@ -101,13 +126,13 @@ namespace ExportSWC.Compiling
 
             WriteLine("Compile Flex SWC", TraceMessageType.Message);
 
-            buildSuccess &= RunCompc(context, context.CompcConfigPathFlex);
+            buildSuccess &= RunCompc(context, context.CompcConfigPathFlex, context.TempCompcOutputPathFlex, context.SwcProjectSettings.FlexIgnoreClasses);
             if (context.SwcProjectSettings.MakeCS3)
             {
                 WriteLine("");
                 WriteLine("Compile Flash SWC", TraceMessageType.Message);
 
-                buildSuccess &= RunCompc(context, context.CompcConfigPathFlash);
+                buildSuccess &= RunCompc(context, context.CompcConfigPathFlash, context.TempCompcOutputPathFlash, context.SwcProjectSettings.CS3IgnoreClasses);
                 PatchFlashSWC(context);
                 if (context.SwcProjectSettings.LaunchAEM)
                 {
@@ -553,7 +578,7 @@ namespace ExportSWC.Compiling
             } while (c > 0);
         }
 
-        protected bool RunCompc(CompileContext context, string confpath)
+        protected bool RunCompc(CompileContext context, string confpath, string tempOutputFilepath, List<string> ignoreClasses)
         {
             var project = context.Project;
             var projectFullPath = context.ProjectFullPath;
@@ -635,8 +660,8 @@ namespace ExportSWC.Compiling
                         sdkBase,
                         context.TargetVersion,
                         context.IsAir,
-                        context.CompcOutputPathFlex,
-                        swcProjectSettings.FlexIgnoreClasses);
+                        tempOutputFilepath,
+                        ignoreClasses);
 
                     _anyErrors |= !generator.IncludeAsDoc(asDocContext);
                 }
@@ -676,6 +701,11 @@ namespace ExportSWC.Compiling
         {
             try
             {
+                if (File.Exists(context.TempCompcOutputPathFlex))
+                {
+                    File.Delete(context.TempCompcOutputPathFlex);
+                }
+
                 if (File.Exists(context.CompcOutputPathFlex))
                 {
                     File.Delete(context.CompcOutputPathFlex);
@@ -683,6 +713,11 @@ namespace ExportSWC.Compiling
 
                 if (context.SwcProjectSettings.MakeCS3)
                 {
+                    if (File.Exists(context.TempCompcOutputPathFlash))
+                    {
+                        File.Delete(context.TempCompcOutputPathFlash);
+                    }
+
                     if (File.Exists(context.CompcOutputPathFlash))
                     {
                         File.Delete(context.CompcOutputPathFlash);
@@ -706,7 +741,7 @@ namespace ExportSWC.Compiling
             var ne = new NotifyEvent(EventType.ProcessStart);
             EventManager.DispatchEvent(this, ne);
 
-            CreateCompcConfig(context, context.CompcConfigPathFlex, context.CompcOutputPathFlex, true, context.SwcProjectSettings.FlexIgnoreClasses);
+            CreateCompcConfig(context, context.CompcConfigPathFlex, context.TempCompcOutputPathFlex, true, context.SwcProjectSettings.FlexIgnoreClasses);
             if (swcProjectSettings.FlexIncludeASI)
             {
                 PreBuild_Asi(context);
@@ -714,7 +749,7 @@ namespace ExportSWC.Compiling
 
             if (swcProjectSettings.MakeCS3)
             {
-                CreateCompcConfig(context, context.CompcConfigPathFlash, context.CompcOutputPathFlash, false, swcProjectSettings.CS3IgnoreClasses);
+                CreateCompcConfig(context, context.CompcConfigPathFlash, context.TempCompcOutputPathFlash, false, swcProjectSettings.CS3IgnoreClasses);
                 if (swcProjectSettings.MakeMXI)
                 {
                     if (swcProjectSettings.MXPIncludeASI &&

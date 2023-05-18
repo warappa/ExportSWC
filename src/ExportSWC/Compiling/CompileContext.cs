@@ -149,7 +149,9 @@ namespace ExportSWC.Compiling
         public string CompcConfigPathFlex => $"{ObjDirectory}{Project.Name}.flex.compc.xml";
         public string CompcConfigPathFlash => $"{ObjDirectory}{Project.Name}.flash.compc.xml";
         public string CompcOutputPathFlex => Path.Combine(ProjectFullPath, SwcProjectSettings.FlexBinPath);
+        public string TempCompcOutputPathFlex => $"{ObjDirectory}temp.flex.compc.swc";
         public string CompcOutputPathFlash => Path.Combine(ProjectFullPath, SwcProjectSettings.FlashBinPath);
+        public string TempCompcOutputPathFlash => $"{ObjDirectory}temp.flash.compc.swc";
         public string MXIPath => $"{ObjDirectory}{Project.Name}.mxi";
         public string ASIDir => Path.Combine(ProjectFullPath, "asi");
         public string SWCProjectSettingsPath => Path.Combine(ProjectFullPath, $"{Project.Name}.lxml");
