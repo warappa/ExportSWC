@@ -41,6 +41,7 @@ namespace ExportSWC
                 {
                     if (CurrentSwcProject is null)
                     {
+                        Configure(s, e);
                         return;
                     }
 

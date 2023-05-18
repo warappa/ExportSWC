@@ -116,10 +116,21 @@ namespace ExportSWC
         }
 
         /// <summary>
+        /// Adds the required event handlers
+        /// </summary> 
+        private void AddEventHandlers()
+        {
+            // Set events you want to listen (combine as flags)
+            EventManager.AddEventHandler(this, EventType.FileSwitch | EventType.Command | EventType.FileOpen | EventType.FileOpening | EventType.UIStarted, HandlingPriority.High);
+        }
+
+        /// <summary>
         /// Handles the incoming events
         /// </summary>
-        public void HandleEvent(object sender, NotifyEvent e, HandlingPriority prority)
+        public async void HandleEvent(object sender, NotifyEvent e, HandlingPriority prority)
         {
+            Debug.WriteLine(e.Type.ToString());
+
             switch (e.Type)
             {
                 // Catches CurrentProject change event and display the active project path
@@ -193,6 +204,22 @@ namespace ExportSWC
                         RepaintNodes();
                     }
 
+                    break;
+                case EventType.FileOpening:
+                    if (_openingLxmlSource)
+                    {
+                        _openingLxmlSource = false;
+                        return;
+                    }
+
+                    // if this is a project file, we can handle it ourselves
+                    var textEvent = (TextEvent)e;
+                    var filepath = textEvent.Value;
+                    if (filepath == CurrentSWCProjectPath)
+                    {
+                        e.Handled = true;
+                        Configure(null, null);
+                    }
                     break;
             }
         }
@@ -284,15 +311,6 @@ namespace ExportSWC
 
             _settingsFilename = Path.Combine(dataPath, "Settings.fdb");
             // pluginImage = LocaleHelper.GetImage("icon");
-        }
-
-        /// <summary>
-        /// Adds the required event handlers
-        /// </summary> 
-        private void AddEventHandlers()
-        {
-            // Set events you want to listen (combine as flags)
-            EventManager.AddEventHandler(this, EventType.FileSwitch | EventType.Command, HandlingPriority.High);
         }
 
         /// <summary>

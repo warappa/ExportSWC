@@ -5,11 +5,16 @@ using System.Windows.Forms;
 using ExportSWC.Utils;
 using ProjectManager.Controls.TreeView;
 using ProjectManager.Projects.AS3;
+using System.Linq;
+using PluginCore;
+using PluginCore.Managers;
 
 namespace ExportSWC
 {
     public partial class PluginMain
     {
+        private bool _openingLxmlSource;
+
         private void InjectContextMenuItems(ProjectTreeView tree)
         {
             if (CurrentSwcProject is null)
@@ -89,6 +94,42 @@ namespace ExportSWC
                     tree.ContextMenuStrip.Items.Add(new ToolStripSeparator());
                     tree.ContextMenuStrip.Items.Add(compileToSWC);
                     tree.ContextMenuStrip.Items.Add(openSwcSettings);
+                }
+                else if (Path.GetExtension(node.BackingPath).ToLower() == ExportSWCConstants.SwcConfigFileExentions)
+                {
+                    var openSource = new ToolStripMenuItem("Open SWC-Project Source")
+                    {
+                        Tag = node
+                    };
+                    openSource.Click += delegate
+                    {
+                        _openingLxmlSource = true;
+                        PluginBase.MainForm.OpenEditableDocument(node.BackingPath);
+                    };
+
+                    //ToolStripMenuItem openMenuItem = null;
+                    try
+                    {
+                        var projectContextMenu = tree.ContextMenuStrip.Items.OfType<ToolStripItem>()
+                            .Select(x => x.Owner)
+                            .OfType<ProjectContextMenu>()
+                            .FirstOrDefault();
+
+                        var openMenuItem = projectContextMenu.Open;
+                        var openMenuItemIndex = tree.ContextMenuStrip.Items.OfType<ToolStripItem>()
+                            .Select((x, i) => new { item = x, i })
+                            .Where(x => x.item == openMenuItem)
+                            .Select(x => (int?)x.i)
+                            .FirstOrDefault();
+
+                        var index = openMenuItemIndex is not null ? openMenuItemIndex.Value + 1 : 1;
+
+                        tree.ContextMenuStrip.Items.Insert(index, openSource);
+                    }
+                    catch (Exception ex)
+                    {
+                        tree.ContextMenuStrip.Items.Add(openSource);
+                    }
                 }
             }
         }
