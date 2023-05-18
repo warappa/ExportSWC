@@ -10,7 +10,7 @@ namespace ExportSWC.AsDoc
         private string? _projectFullPath;
         private string _objDirectory;
 
-        public AsDocContext(AS3Project project, SWCProject swcProjectSettings, string sdkBase, string targetVersion, bool isAir, string outputPath, List<string> flexIgnoreClasses)
+        public AsDocContext(AS3Project project, SWCProject swcProjectSettings, string sdkBase, string targetVersion, bool isAir, string outputPath, string asDocConfigFilepath, List<string> flexIgnoreClasses)
         {
             Project = project;
             SwcProjectSettings = swcProjectSettings;
@@ -18,6 +18,7 @@ namespace ExportSWC.AsDoc
             TargetVersion = targetVersion;
             IsAir = isAir;
             FlexOutputPath = outputPath;
+            AsDocConfigFilepath = asDocConfigFilepath;
             FlexIgnoreClasses = flexIgnoreClasses;
         }
 
@@ -37,25 +38,6 @@ namespace ExportSWC.AsDoc
         
         public string FlexOutputPath { get; }
 
-        private string ObjDirectory
-        {
-            get
-            {
-                if (_objDirectory is not null)
-                {
-                    return _objDirectory;
-                }
-
-                _objDirectory = $@"{Path.Combine(ProjectFullPath, "obj")}\";
-                if (!Directory.Exists(_objDirectory))
-                {
-                    Directory.CreateDirectory(_objDirectory);
-                }
-
-                return _objDirectory;
-            }
-        }
-
-        public string AsDocConfigPath => $"{ObjDirectory}{Project.Name}.flex.asdoc.xml";
+        public string AsDocConfigFilepath { get; }
     }
 }

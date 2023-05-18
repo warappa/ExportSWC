@@ -50,11 +50,6 @@ namespace ExportSWC.Compiling
             return platform;
         }
 
-        public bool IsAirSdk()
-        {
-            return File.Exists(Path.Combine(SdkBase, "air-sdk-description.xml"));
-        }
-
         /// <summary>
         /// The SDK Version.
         /// </summary>
@@ -127,7 +122,7 @@ namespace ExportSWC.Compiling
             }
         }
 
-        private string ObjDirectory
+        public string ObjDirectory
         {
             get
             {

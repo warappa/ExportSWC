@@ -55,7 +55,7 @@ namespace ExportSWC.AsDoc
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
 
-            var configFilepath = context.AsDocConfigPath;
+            var configFilepath = context.AsDocConfigFilepath;
 
             CreateAsDocConfig(context, configFilepath, tempPath, true, context.SwcProjectSettings.FlexIgnoreClasses);
             var cmdArgs = CreateAsDocConfigFileArguments(context, project, configFilepath);

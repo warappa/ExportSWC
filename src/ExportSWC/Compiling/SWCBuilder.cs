@@ -653,6 +653,9 @@ namespace ExportSWC.Compiling
                     swcProjectSettings.IntegrateAsDoc &&
                     context.IsAsDocIntegrationAvailable)
                 {
+                    var framework = tempOutputFilepath == context.TempCompcOutputPathFlex ? "flex" : "flash";
+                    var asdocConfigFilepath = $"{context.ObjDirectory}{project.Name}.{framework}.asdoc.xml";
+
                     var generator = new AsDocGenerator(_tracer);
                     var asDocContext = new AsDocContext(
                         project,
@@ -661,6 +664,7 @@ namespace ExportSWC.Compiling
                         context.TargetVersion,
                         context.IsAir,
                         tempOutputFilepath,
+                        asdocConfigFilepath,
                         ignoreClasses);
 
                     _anyErrors |= !generator.IncludeAsDoc(asDocContext);
