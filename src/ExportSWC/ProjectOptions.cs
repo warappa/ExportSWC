@@ -5,6 +5,7 @@ using System.IO;
 using System.Windows.Forms;
 using ExportSWC.Options;
 using ProjectManager.Projects.AS3;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Button;
 
 namespace ExportSWC
 {
@@ -150,21 +151,8 @@ namespace ExportSWC
 
         private void EnableCtrls()
         {
-            cb_intrinsic_cs3.Enabled
-                = cb_createmxi.Enabled
-                = tb_compname.Enabled
-                = tb_compclass.Enabled
-                = tb_compgroup.Enabled
-                = tb_icon.Enabled
-                = tb_preview.Enabled
-                = tb_tooltip.Enabled
-                = rb_class.Enabled
-                = rb_none.Enabled
-                = rb_swf.Enabled
-                = button1.Enabled
-                = textBoxFlashBin.Enabled
-                = buttonBrowseFlashOutput.Enabled
-                = cb_makecs3.Checked;
+            groupBox2.Enabled = cb_makecs3.Checked;
+
             cb_runaem.Enabled = cb_createmxi.Checked && cb_createmxi.Enabled;
 
             tb_preview.Enabled
