@@ -631,6 +631,7 @@ namespace ExportSWC.Compiling
                     var generator = new AsDocGenerator(_tracer);
                     var asDocContext = new AsDocContext(
                         project,
+                        swcProjectSettings,
                         sdkBase,
                         context.TargetVersion,
                         context.IsAir,
@@ -968,7 +969,7 @@ namespace ExportSWC.Compiling
             config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
             config.Save(configFilepath);
             //TraceManager.AddAsync("Configuration writen to: " + confout, 2);
-            WriteLine("Configuration writen to: " + configFilepath);
+            WriteLine("Configuration written to: " + configFilepath);
 
         }
 

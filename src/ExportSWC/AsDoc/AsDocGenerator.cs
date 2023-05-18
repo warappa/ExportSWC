@@ -6,13 +6,17 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
+using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using ASCompletion.Context;
+using ExportSWC.Compiling;
 using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
 using ExportSWC.Utils;
 using ICSharpCode.SharpZipLib.Zip;
+using Microsoft.CodeAnalysis.Semantics;
+using Mono.CSharp;
 using PluginCore;
 using PluginCore.Utilities;
 using ProjectManager.Projects.AS3;
@@ -38,6 +42,8 @@ namespace ExportSWC.AsDoc
 
         public bool IncludeAsDoc(AsDocContext context)
         {
+            var project = context.Project;
+
             WriteLine("");
             WriteLine("Building documentation", TraceMessageType.Message);
             if (!File.Exists(context.FlexOutputPath))
@@ -49,8 +55,12 @@ namespace ExportSWC.AsDoc
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempPath);
 
-            var arguments = BuildAsDocArguments(context, tempPath);
+            var configFilepath = context.AsDocConfigPath;
 
+            //var cmdArgs = BuildAsDocArguments(context, tempPath);
+
+            CreateAsDocConfig(context, configFilepath, tempPath, true, context.SwcProjectSettings.FlexIgnoreClasses);
+            var cmdArgs = CreateAsDocConfigFileArguments(context, project, configFilepath);
 
             WriteLine("asdoc temp output: " + tempPath);
 
@@ -58,9 +68,9 @@ namespace ExportSWC.AsDoc
             var asdoc = PathUtils.GetExeOrBatPath(asDocPath)
                 ?? throw new FileNotFoundException("asdoc not found", asDocPath);
 
-            WriteLine($"Start asdoc: {asdoc.FullName}\n{arguments}");
+            WriteLine($"Start asdoc: {asdoc.FullName}\n{cmdArgs}");
 
-            var success = RunAsDoc(context, tempPath, arguments, asdoc, out var exitCode);
+            var success = RunAsDoc(context, tempPath, cmdArgs, asdoc, out var exitCode);
 
             WriteLine($"asdoc complete ({exitCode})", success ? TraceMessageType.Verbose : TraceMessageType.Error);
 
@@ -89,6 +99,31 @@ namespace ExportSWC.AsDoc
             Directory.Delete(tempPath, true);
 
             return true;
+        }
+
+        private static string CreateAsDocConfigFileArguments(AsDocContext context, AS3Project project, string configFilepath)
+        {
+            var cmdArgs = $"";
+
+            // prevent flaky builds by specifying configname explicitly
+            cmdArgs += $" +configname={(context.IsAir ? "air" : "flex")}";
+
+            // generate arguments based on config, additional configs, and additional user arguments
+            cmdArgs += $@" -load-config+=""{configFilepath}""";
+            if (project.CompilerOptions.LoadConfig != string.Empty)
+            {
+                cmdArgs += $@" -load-config+=""{project.CompilerOptions.LoadConfig}""";
+            }
+
+            if (project.CompilerOptions.Additional.Length > 0)
+            {
+                foreach (var additionalOption in project.CompilerOptions.Additional)
+                {
+                    cmdArgs += $" {additionalOption}";
+                }
+            }
+
+            return cmdArgs;
         }
 
         private bool RunAsDoc(AsDocContext context, string tempPath, string arguments, FileInfo asdoc, out int exitCode)
@@ -425,6 +460,8 @@ namespace ExportSWC.AsDoc
 
             var arguments = "";
 
+            tempPath = tempPath.TrimEnd('\\', '/');
+
             arguments += PluginMain.IsReleaseBuild(project) ? "" : " -debug";
 
             // source-path	
@@ -524,6 +561,224 @@ namespace ExportSWC.AsDoc
 
 
             return arguments;
+        }
+
+        protected void CreateAsDocConfig(AsDocContext context, string configFilepath, string outputDirectorypath, bool isRuntimeSharedLibrary, List<string> classExclusions)
+        {
+            var project = context.Project;
+
+            configFilepath = $@"{configFilepath.TrimEnd('\\', '/')}\";
+
+            //TraceManager.Add("Prebuilding config " + confout + "...");
+            WriteLine("Prebuilding asdoc config " + configFilepath + "...");
+
+            // build the config file
+            var config = new XmlDocument();
+
+            config.LoadXml("<?xml version=\"1.0\"?><flex-config/>");
+
+            // compiler options...
+            var compiler = config.DocumentElement.CreateElement("compiler", null!);
+
+            compiler.CreateElement("debug", (!PluginMain.IsReleaseBuild(project)).ToString().ToLower());
+
+            // source-path & include-classes
+            var sourcePath = compiler.CreateElement("source-path", null!);
+            foreach (var classPath in project.Classpaths)
+            {
+                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
+                sourcePath.CreateElement("path-element", absClassPath);
+            }
+
+            // general options...
+            // libarary-path			
+            if (project.CompilerOptions.LibraryPaths.Length > 0)
+            {
+                var includeLibraries = compiler.CreateElement("library-path", null!);
+                foreach (var libPath in project.CompilerOptions.LibraryPaths)
+                {
+                    var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
+                    includeLibraries.CreateElement("path-element", absLibPath);
+                }
+            }
+
+            // include-libraries
+            if (project.CompilerOptions.IncludeLibraries.Length > 0)
+            {
+                var includeLibraries = compiler.CreateElement("include-libraries", null!);
+                foreach (var libPath in project.CompilerOptions.IncludeLibraries)
+                {
+                    var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
+                    includeLibraries.CreateElement("library", absLibPath);
+                }
+            }
+
+            // external-library-path 
+            if (project.CompilerOptions.ExternalLibraryPaths != null &&
+                project.CompilerOptions.ExternalLibraryPaths.Length > 0)
+            {
+                var externalLibs = compiler.CreateElement("external-library-path", null!);
+                var attr = externalLibs.OwnerDocument.CreateAttribute("append");
+                attr.InnerXml = "true";
+                externalLibs.Attributes.Append(attr);
+
+                foreach (var libPath in project.CompilerOptions.ExternalLibraryPaths)
+                {
+                    var absLibPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, libPath).ToLower();
+                    externalLibs.CreateElement("path-element", absLibPath);
+                }
+            }
+
+            // doc-classes
+            var origClassExclusions = classExclusions;
+            classExclusions = new List<string>();
+            for (var i = 0; i < origClassExclusions.Count; i++)
+            {
+                classExclusions.Add(PathUtils.GetProjectItemFullPath(context.ProjectFullPath, origClassExclusions[i]).ToLower());
+            }
+
+            var docClasses = config.DocumentElement.CreateElement("doc-classes", null!);
+            foreach (var classPath in project.Classpaths)
+            {
+                var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
+                IncludeClassesIn(docClasses, context.ProjectFullPath, absClassPath, string.Empty, "class", classExclusions);
+            }
+
+
+            //// TODO: -doc-classes
+            //foreach (var classPath in project.Classpaths)
+            //{
+            //    var absClassPath = PathUtils.GetProjectItemFullPath(context.ProjectFullPath, classPath).ToLower();
+            //    IncludeClassesIn(config.DocumentElement, context.ProjectFullPath, absClassPath, string.Empty, "doc-classes", classExclusions);
+            //}
+
+            // If Air is used, target version is AIR version
+            // target
+            config.DocumentElement.CreateElement("target-player", context.TargetVersion);
+
+            // locale
+            if (!string.IsNullOrEmpty(context.Project.CompilerOptions.Locale))
+            {
+                var localeX = compiler.CreateElement("locale", "");
+                localeX.CreateElement("locale-element", context.Project.CompilerOptions.Locale);
+            }
+
+            // lenient
+            config.DocumentElement.CreateElement("lenient", "true");
+
+            // lenient
+            config.DocumentElement.CreateElement("keep-xml", "true");
+
+            // lenient
+            config.DocumentElement.CreateElement("skip-xsl", "true");
+
+
+            //// general options...
+            //// output
+            config.DocumentElement.CreateElement("output", outputDirectorypath);
+
+
+            // use-network
+            config.DocumentElement.CreateElement("use-network", project.CompilerOptions.UseNetwork.ToString().ToLower());
+
+            // warnings
+            config.DocumentElement.CreateElement("warnings", project.CompilerOptions.Warnings.ToString().ToLower());
+
+            // runtime-shared-libraries
+            if (project.CompilerOptions.RSLPaths.Length > 0)
+            {
+                var rslUrls = config.DocumentElement.CreateElement("runtime-shared-libraries", null!);
+                foreach (var rslUrl in project.CompilerOptions.RSLPaths)
+                {
+                    rslUrls.CreateElement("rsl-url", rslUrl);
+                }
+            }
+
+            // benchmark
+            config.DocumentElement.CreateElement("benchmark", project.CompilerOptions.Benchmark.ToString().ToLower());
+
+            // compute-digest
+            if (!isRuntimeSharedLibrary)
+            {
+                config.DocumentElement.CreateElement("compute-digest", "false");
+            }
+
+            // accessible
+            compiler.CreateElement("accessible", project.CompilerOptions.Accessible.ToString().ToLower());
+
+            // allow-source-path-overlap
+            compiler.CreateElement("allow-source-path-overlap", project.CompilerOptions.AllowSourcePathOverlap.ToString().ToLower());
+
+            // optimize
+            compiler.CreateElement("optimize", project.CompilerOptions.Optimize.ToString().ToLower());
+
+            // strict
+            compiler.CreateElement("strict", project.CompilerOptions.Strict.ToString().ToLower());
+
+            // es
+            compiler.CreateElement("es", project.CompilerOptions.ES.ToString().ToLower());
+
+            // show-actionscript-warnings
+            compiler.CreateElement("show-actionscript-warnings", project.CompilerOptions.ShowActionScriptWarnings.ToString().ToLower());
+
+            // show-binding-warnings
+            compiler.CreateElement("show-binding-warnings", project.CompilerOptions.ShowBindingWarnings.ToString().ToLower());
+
+            // show-unused-type-selector- warnings
+            compiler.CreateElement("show-unused-type-selector-warnings", project.CompilerOptions.ShowUnusedTypeSelectorWarnings.ToString().ToLower());
+
+            // use-resource-bundle-metadata
+            compiler.CreateElement("use-resource-bundle-metadata", project.CompilerOptions.UseResourceBundleMetadata.ToString().ToLower());
+
+            // verbose-stacktraces
+            compiler.CreateElement("verbose-stacktraces", project.CompilerOptions.VerboseStackTraces.ToString().ToLower());
+
+
+
+
+
+
+
+
+
+            // add namespace, save config to obj folder
+            config.DocumentElement.SetAttribute("xmlns", "http://www.adobe.com/2006/flex-config");
+            config.Save(configFilepath);
+            
+            WriteLine("asdoc Configuration written to: " + configFilepath);
+
+        }
+
+        protected void IncludeClassesIn(XmlElement includeClasses, string projectPath, string sourcePath, string parentPath, string elementTag, List<string> classExclusions)
+        {
+            // take the current folder
+            var directory = new DirectoryInfo(sourcePath);
+
+            if (!directory.Exists)
+            {
+                WriteLine($"Path '{sourcePath}' does not exist - skipped", TraceMessageType.Warning);
+                return;
+            }
+
+            // add every AS class to the manifest
+            foreach (var file in directory.GetFiles())
+            {
+                if (file.Extension is
+                    ".as" or
+                    ".mxml")
+                {
+                    if (!PathUtils.IsFileIgnored(projectPath, file.FullName, classExclusions))
+                    {
+                        includeClasses.CreateElement(elementTag, parentPath + Path.GetFileNameWithoutExtension(file.FullName));
+                    }
+                }
+            }
+
+            // process sub folders
+            foreach (var folder in directory.GetDirectories())
+            {
+                IncludeClassesIn(includeClasses, projectPath, folder.FullName, parentPath + folder.Name + ".", elementTag, classExclusions);
+            }
         }
 
         private void MergeAsDocIntoSWC(string tmpPath, string targetSwcFile)
