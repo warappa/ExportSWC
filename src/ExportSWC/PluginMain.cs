@@ -2,9 +2,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using ExportSWC.Compiling;
 using ExportSWC.Options;
@@ -16,7 +19,9 @@ using PluginCore.Helpers;
 using PluginCore.Localization;
 using PluginCore.Managers;
 using ProjectManager;
+using ProjectManager.Controls;
 using ProjectManager.Controls.TreeView;
+using ProjectManager.Helpers;
 using ProjectManager.Projects.AS3;
 
 namespace ExportSWC
@@ -42,6 +47,7 @@ namespace ExportSWC
         /* SWC project */
         private SWCProject? CurrentSwcProject;
         private DataContractJsonSerializer _settingsSerializer = new DataContractJsonSerializer(typeof(ExportSWCSettings));
+        private ImageListManager _imageListManager;
         private readonly ITraceable _tracer;
         private readonly SWCBuilder _compiler;
 
@@ -137,6 +143,7 @@ namespace ExportSWC
                 case EventType.Command:
                     var dataEvent = (DataEvent)e;
                     var cmd = dataEvent.Action;
+                    Debug.WriteLine($" - {cmd}");
                     if (cmd == ProjectManagerEvents.Project)
                     {
                         var project = PluginBase.CurrentProject;
@@ -162,6 +169,7 @@ namespace ExportSWC
                             Build(null, null);
                         }
                     }
+                    //else if (cmd == ProjectManagerCommands.open)
                     else if (cmd == ProjectManagerEvents.FileMoved)
                     {
                         var data = (Hashtable)dataEvent.Data;
@@ -184,6 +192,11 @@ namespace ExportSWC
 
                             UpdateToolstrip();
                         }
+                    }
+                    else if (cmd == ProjectManagerEvents.Menu)
+                    {
+                        // ProjectManager plugin is initialized enough so we can try to inject our file extension icon
+                        TryInjectExtensionIcon();
                     }
 
                     if (sender?.GetType() == typeof(ProjectTreeView))
@@ -397,6 +410,23 @@ namespace ExportSWC
                     }
                 }
             }
+        }
+
+        private void TryInjectExtensionIcon()
+        {
+            try
+            {
+                var imageList = Icons.ImageList;
+                var image = LocaleHelper.GetImage("icon");
+
+                imageList.Images.Add(image);
+                var fdImage = new FDImage(image, imageList.Images.Count - 1);
+
+                var extensionIconsField = typeof(Icons).GetField("extensionIcons", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+                var extensionIcons = extensionIconsField.GetValue(null) as Dictionary<string, FDImage>;
+                extensionIcons?.Add(ExportSWCConstants.SwcConfigFileExentions, fdImage);
+            }
+            catch { }
         }
     }
 }
