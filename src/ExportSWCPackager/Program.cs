@@ -2,13 +2,15 @@
 using System.IO.Compression;
 using ExportSWCPackager;
 
-//if (args.Length < 1)
-//{
-//    Console.Error.WriteLine("ERROR: Please specify a working directory where the input files can be found");
-//    return -1;
-//}
+if (args.Length < 1)
+{
+    Console.Error.WriteLine("ERROR: Please specify a compatability level (5.3.3, development)");
+    return -1;
+}
 
-//var workingDirectory = args[0];
+var compatabilityLevel = args[0];
+
+Console.WriteLine($"FlashDevelop compatibility: {compatabilityLevel}");
 
 var allFound = CheckFile("ExportSWC.dll") &&
     CheckFile("README.md") &&
@@ -19,7 +21,7 @@ if (!allFound)
     return -1;
 }
 
-var fdzFilename = "ExportSWC.fdz";
+var fdzFilename = $"ExportSWC-{compatabilityLevel}.fdz";
 if (File.Exists(fdzFilename))
 {
     File.Delete(fdzFilename);

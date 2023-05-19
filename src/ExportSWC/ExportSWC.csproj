@@ -1,14 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net4.0</TargetFramework>
+    <FlashDevelopCompatability>development</FlashDevelopCompatability>
+    <!--<FlashDevelopCompatability>5.3.3</FlashDevelopCompatability>-->
+    <TargetFramework>net48</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <OutputPath>..\FlashDevelop\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <NoWarn>$(NoWarn);MSB3270</NoWarn>
-    <!--<GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>-->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -21,18 +22,19 @@
     <Deterministic>false</Deterministic>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!--<ProjectReference Include="..\FlashDevelop\External\Plugins\AS3Context\AS3Context.csproj" />
-    <ProjectReference Include="..\FlashDevelop\External\Plugins\ProjectManager\ProjectManager.csproj" />
-    <ProjectReference Include="..\FlashDevelop\External\Plugins\ASCompletion\ASCompletion.csproj" />
-    <ProjectReference Include="..\FlashDevelop\PluginCore\PluginCore.csproj" />-->
+  <PropertyGroup Condition=" '$(FlashDevelopCompatability)' == '5.3.3' ">
+    <TargetFramework>net4.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(FlashDevelopCompatability)' == 'development' ">
+    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+  </PropertyGroup>
   
+  <ItemGroup>
     <None Remove="Resources\cs3_component_icon.png" />
     <None Remove="Resources\icon.png" />
     <None Remove="Resources\icon_disabled.png" />
-  </ItemGroup>
 
-  <ItemGroup>
     <EmbeddedResource Include="Resources\cs3_component_icon.png" />
     <EmbeddedResource Include="Resources\icon.png" />
     <EmbeddedResource Include="Resources\icon_disabled.png" />
@@ -45,7 +47,16 @@
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition=" '$(FlashDevelopCompatability)' == 'development' ">
+    <PackageReference Include="System.Resources.Extensions" Version="4.7.1" />
+    
+    <ProjectReference Include="..\FlashDevelop\External\Plugins\AS3Context\AS3Context.csproj" />
+    <ProjectReference Include="..\FlashDevelop\External\Plugins\ProjectManager\ProjectManager.csproj" />
+    <ProjectReference Include="..\FlashDevelop\External\Plugins\ASCompletion\ASCompletion.csproj" />
+    <ProjectReference Include="..\FlashDevelop\PluginCore\PluginCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition=" '$(FlashDevelopCompatability)' == '5.3.3' ">
     <Reference Include="../libs/FlashDevelop/5.3.3/ASCompletion.dll" />
     <Reference Include="../libs/FlashDevelop/5.3.3/AS3Context.dll" />
     <Reference Include="../libs/FlashDevelop/5.3.3/PluginCore.dll" />
