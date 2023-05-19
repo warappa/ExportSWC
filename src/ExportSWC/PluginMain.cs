@@ -129,7 +129,7 @@ namespace ExportSWC
         /// <summary>
         /// Handles the incoming events
         /// </summary>
-        public async void HandleEvent(object sender, NotifyEvent e, HandlingPriority prority)
+        public void HandleEvent(object sender, NotifyEvent e, HandlingPriority prority)
         {
             switch (e.Type)
             {
@@ -423,7 +423,7 @@ namespace ExportSWC
             try
             {
                 var imageList = Icons.ImageList;
-                var image = LocaleHelper.GetImage("icon");
+                var image = LocaleHelper.GetImage("icon.png");
 
                 imageList.Images.Add(image);
                 var fdImage = new FDImage(image, imageList.Images.Count - 1);

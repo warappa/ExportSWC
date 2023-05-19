@@ -417,7 +417,7 @@ namespace ExportSWC.Compiling
 
             if (!swcProjectSettings.ValidImage())
             {
-                LocaleHelper.GetImage("cs3_component_icon").Save(tempDir + "\\icon.png", ImageFormat.Png);
+                LocaleHelper.GetImage("cs3_component_icon.png").Save(tempDir + "\\icon.png", ImageFormat.Png);
             }
             else
             {

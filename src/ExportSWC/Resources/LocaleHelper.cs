@@ -1,4 +1,6 @@
+using System;
 using System.Drawing;
+using System.Linq;
 using System.Reflection;
 using System.Resources;
 using PluginCore.Localization;
@@ -8,6 +10,7 @@ namespace ExportSWC.Resources
     internal class LocaleHelper
     {
         private static ResourceManager? resources;
+        private static string[] _names;
 
         /// <summary>
         /// Initializes the localization of the plugin
@@ -26,9 +29,23 @@ namespace ExportSWC.Resources
             return resources!.GetString(identifier);
         }
 
+        private static Image? GetImageFromEmbeddedResource(string identifier)
+        {
+            _names ??= Assembly.GetExecutingAssembly().GetManifestResourceNames();
+
+            var resourceName = $"ExportSWC.Resources.{identifier}";
+            if (_names.Contains(resourceName))
+            {
+                using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                return Image.FromStream(stream);
+            }
+
+            return null;
+        }
+
         public static Image GetImage(string identifier)
         {
-            return (Image)resources!.GetObject(identifier);
+            return (Image)resources!.GetObject(identifier) ?? GetImageFromEmbeddedResource(identifier);
         }
     }
 }

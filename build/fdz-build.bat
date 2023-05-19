@@ -5,7 +5,8 @@ IF EXIST .\publish\ rmdir .\publish\ /S /Q
 mkdir publish
 mkdir publish\build
 
-dotnet build ..\src\ExportSWC\ExportSWC.csproj /p:SolutionDir=..\src\ /p:PreBuildEvent= -o publish\build -v q
+dotnet build ..\src\ExportSWC\ExportSWC.csproj /p:SolutionDir=..\src\ /p:PreBuildEvent= -o publish\build -a AnyCPU -v q
+::dotnet msbuild ..\src\ExportSWC\ExportSWC.csproj /p:SolutionDir=..\src\ /p:PreBuildEvent= /p:OutputDir=publish\build
 
 IF %ERRORLEVEL% gtr 0 GOTO error
 

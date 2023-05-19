@@ -18,8 +18,8 @@ namespace ExportSWC
         /// </summary>
         private void CreateMenuItem()
         {
-            _enabledIcon ??= LocaleHelper.GetImage("icon");
-            _disabledIcon ??= LocaleHelper.GetImage("icon_disabled");
+            _enabledIcon ??= LocaleHelper.GetImage("icon.png");
+            _disabledIcon ??= LocaleHelper.GetImage("icon_disabled.png");
 
             //ToolStripMenuItem viewMenu = (ToolStripMenuItem)PluginBase.MainForm.FindMenuItem("ViewMenu");
             //viewMenu.DropDownItems.Add(new ToolStripMenuItem(LocaleHelper.GetString("Label.ViewMenuItem"), this.pluginImage, new EventHandler(Configure)));

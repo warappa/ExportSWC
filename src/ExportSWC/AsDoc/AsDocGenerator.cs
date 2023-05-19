@@ -10,6 +10,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using ASCompletion.Context;
+using ASCompletion.Model;
 using ExportSWC.Compiling;
 using ExportSWC.Tracing;
 using ExportSWC.Tracing.Interfaces;
@@ -278,7 +279,7 @@ namespace ExportSWC.AsDoc
                                 {
                                     if (membername != "")
                                     {
-                                        var memberModel = classModel.Members.FirstOrDefault(x => x.Name == membername);
+                                        var memberModel = classModel.Members.OfType<MemberModel>().FirstOrDefault(x => x.Name == membername);
                                         if (memberModel is not null)
                                         {
                                             comments = memberModel.Comments;

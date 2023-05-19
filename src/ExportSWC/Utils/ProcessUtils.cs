@@ -29,7 +29,7 @@ namespace ExportSWC.Utils
                 .Where(x => x.Name == "ProcessString" && x.GetParameters().Length == 2)
                 .First();
 
-            _processString = (Func<string, bool, string>)processStringMethod.CreateDelegate(typeof(Func<string, bool, string>));
+            _processString = (s, b) => (string)processStringMethod.Invoke(null,new object[] { s, b });
         }
     }
 }

@@ -58,7 +58,7 @@ namespace ExportSWC.Utils
             {
                 foreach (var e in environment)
                 {
-                    HostedProcess.StartInfo.Environment[e.Key] = e.Value;
+                    HostedProcess.StartInfo.EnvironmentVariables[e.Key] = e.Value;
                 }
             }
 

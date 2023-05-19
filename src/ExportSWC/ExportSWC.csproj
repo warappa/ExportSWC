@@ -1,14 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net4.8</TargetFramework>
+    <TargetFramework>net4.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <OutputPath>..\FlashDevelop\FlashDevelop\Bin\Debug\Plugins\</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <NoWarn>$(NoWarn);MSB3270</NoWarn>
-    <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+    <!--<GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>-->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -22,19 +22,34 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Polyfill" Version="1.23.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="System.Resources.Extensions" Version="5.0.0" />
+    <!--<ProjectReference Include="..\FlashDevelop\External\Plugins\AS3Context\AS3Context.csproj" />
+    <ProjectReference Include="..\FlashDevelop\External\Plugins\ProjectManager\ProjectManager.csproj" />
+    <ProjectReference Include="..\FlashDevelop\External\Plugins\ASCompletion\ASCompletion.csproj" />
+    <ProjectReference Include="..\FlashDevelop\PluginCore\PluginCore.csproj" />-->
+  
+    <None Remove="Resources\cs3_component_icon.png" />
+    <None Remove="Resources\icon.png" />
+    <None Remove="Resources\icon_disabled.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FlashDevelop\External\Plugins\AS3Context\AS3Context.csproj" />
-    <ProjectReference Include="..\FlashDevelop\External\Plugins\ASCompletion\ASCompletion.csproj" />
-    <ProjectReference Include="..\FlashDevelop\External\Plugins\ProjectManager\ProjectManager.csproj" />
-    <!--<ProjectReference Include="..\FlashDevelop\FlashDevelop\FlashDevelop.csproj" />-->
-    <ProjectReference Include="..\FlashDevelop\PluginCore\PluginCore.csproj" />
+    <EmbeddedResource Include="Resources\cs3_component_icon.png" />
+    <EmbeddedResource Include="Resources\icon.png" />
+    <EmbeddedResource Include="Resources\icon_disabled.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PolySharp" Version="1.13.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="../libs/FlashDevelop/5.3.3/ASCompletion.dll" />
+    <Reference Include="../libs/FlashDevelop/5.3.3/AS3Context.dll" />
+    <Reference Include="../libs/FlashDevelop/5.3.3/PluginCore.dll" />
+    <Reference Include="../libs/FlashDevelop/5.3.3/ProjectManager.dll" />
   </ItemGroup>
 
 </Project>
